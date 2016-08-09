@@ -1,0 +1,52 @@
+containers:
+  check:
+    setup:
+    - !Alpine v3.4
+    - !Repo edge/testing
+    - &rocks !Install [lua5.3, luarocks5.3, ca-certificates, curl]
+    - !Sh |
+        echo 'variables = { CC = "gcc -I/usr/include/lua5.3" }' >> /etc/luarocks/config-5.3.lua
+
+    - !Tar
+      url: https://github.com/tailhook/lithos/files/286139/lithos-check-v0.5.1.tar.gz
+      sha256: 5501d0a4ce5076116517984d1e5b6bf36913140021085d1808dd4f00b0e2ff62
+      path: /usr/bin
+
+    - !Tar
+      url: https://github.com/tailhook/verwalter/files/302835/verwalter-render-v0.3.3.tar.gz
+      sha256: db867f21b0f435dcf98ce4c51e954bdfcd44397cc8836b8a4a4d7cd90875e839
+      path: /usr/bin
+
+    - !BuildDeps [build-base, lua5.3-dev]
+    - !Sh luarocks-5.3 install busted
+    - !Sh luarocks-5.3 install luacheck
+
+  install-v2:
+    environ:
+      HOME: /tmp
+    setup:
+    - !Alpine v3.4
+    - !Repo edge/testing
+    - *rocks
+    - !Text
+      /etc/luarocks/config-5.3.lua: |
+        rocks_trees = {{
+          root="/work/scheduler-install-meta/v2",
+          lua_dir="/work/scheduler/v2",
+        }}
+
+commands:
+
+  test: !Command
+    container: check
+    environ: { LUA_PATH: "?.lua;/usr/share/lua/5.3/luassert/?.lua" }
+    prerequisites: [check]
+    accepts-arguments: true
+    run: |
+      exec busted ${1:-tests/*.lua}
+
+  check: !Command
+    container: check
+    run: |
+      set -ex
+      luacheck modules/*.lua tests/*.lua
