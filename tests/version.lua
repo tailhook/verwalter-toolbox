@@ -1,7 +1,8 @@
-local compare = require("modules/version").compare
 local assert = require('assert')
 local busted = require('busted')
 local test = busted.test
+
+local compare = require("modules/version").compare
 
 test("various comparisons", function()
     assert.truthy(compare("v1", "v2"))
