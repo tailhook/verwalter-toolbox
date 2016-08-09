@@ -1,0 +1,11 @@
+language: python
+install:
+- pip install hererocks
+- hererocks lua53 -l5.3 -rlatest
+- source lua53/bin/activate
+- lua -v
+- luarocks install luacheck
+- luarocks install busted
+script:
+- luacheck modules/*.lua tests/*.lua
+- busted tests/*.lua
