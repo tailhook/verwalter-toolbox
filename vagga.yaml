@@ -39,7 +39,6 @@ commands:
 
   test: !Command
     container: check
-    environ: { LUA_PATH: "?.lua;/usr/share/lua/5.3/luassert/?.lua" }
     prerequisites: [check]
     accepts-arguments: true
     run: |

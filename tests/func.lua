@@ -1,4 +1,4 @@
-local assert = require('assert')
+local assert = require('luassert')
 local busted = require('busted')
 local test = busted.test
 local describe = busted.describe
