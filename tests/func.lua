@@ -35,6 +35,23 @@ describe("map_pairs: maps key value pairs, preserving keys", function()
     end)
 end)
 
+describe("map_reverse: map indexed part but in reverse order", function()
+    local mapfunc = function(a) return a.."1" end
+    test("map list", function()
+        assert.are.same(
+            func.map_reverse(mapfunc, {"x", "y", "z"}),
+            {"z1", "y1", "x1"})
+    end)
+
+    -- Map totaly skips non-indexed part of a table
+    test("map dict", function()
+        assert.are.same(
+            func.map_reverse(mapfunc, {"x", "y", b="z", c="w"}),
+            {"y1", "x1"})
+    end)
+end)
+
+
 describe("map_to_dict: like map_pairs but key is returned", function()
     local mapfunc = function(k, v) return v, k end
     test("(list)", function()
