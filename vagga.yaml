@@ -43,7 +43,7 @@ commands:
     prerequisites: [check]
     accepts-arguments: true
     run: |
-      exec busted --verbose ${1:-tests/*.lua}
+      exec busted --verbose --coverage ${1:-tests/*.lua}
 
   check: !Command
     container: check
@@ -54,4 +54,4 @@ commands:
   test-coverage: !Command
     container: check
     prerequisites: [test]
-    run: [luacov]
+    run: [luacov, '^./modules/']
