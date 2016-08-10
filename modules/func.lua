@@ -98,6 +98,22 @@ local function sorted(src)
     return dest
 end
 
+local function range_step_num(start, step, num)
+    local result = {}
+    for i=start,start+step*(num-1),step do
+        result[#result+1] = i
+    end
+    return result
+end
+
+local function repeat_num(value, num)
+    local result = {}
+    for i=1,num do
+        result[i] = value
+    end
+    return result
+end
+
 return {
     map=map,
     map_pairs=map_pairs,
@@ -110,4 +126,6 @@ return {
     copy=_copy,
     contains=contains,
     sorted=sorted,
+    range_step_num=range_step_num,
+    repeat_num=repeat_num,
 }
