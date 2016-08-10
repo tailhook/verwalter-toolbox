@@ -20,6 +20,7 @@ containers:
     - !BuildDeps [build-base, lua5.3-dev]
     - !Sh luarocks-5.3 install busted
     - !Sh luarocks-5.3 install luacheck
+    - !Sh luarocks-5.3 install luacov
 
   install-v2:
     environ:
@@ -42,10 +43,15 @@ commands:
     prerequisites: [check]
     accepts-arguments: true
     run: |
-      exec busted ${1:-tests/*.lua}
+      exec busted --verbose ${1:-tests/*.lua}
 
   check: !Command
     container: check
     run: |
       set -ex
       luacheck modules/*.lua tests/*.lua
+
+  test-coverage: !Command
+    container: check
+    prerequisites: [test]
+    run: [luacov]
