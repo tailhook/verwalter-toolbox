@@ -1,0 +1,118 @@
+local assert = require('luassert')
+local busted = require('busted')
+local test = busted.test
+local describe = busted.describe
+
+local json = require("modules/json")
+
+
+describe("json serialize", function()
+    test("null", function()
+        assert.equal('null', json:encode(nil))
+    end)
+    test("bool", function()
+        assert.equal('true', json:encode(true))
+        assert.equal('false', json:encode(false))
+    end)
+    test("str", function()
+        assert.equal('"x"', json:encode("x"))
+        assert.equal('"x\\\\"', json:encode("x\\"))
+        assert.equal('"15"', json:encode("15"))
+        assert.equal('"привет"', json:encode("привет"))
+        assert.equal('"☃"', json:encode("☃"))
+    end)
+    test("escapes", function()
+        assert.equal('"\\\\b\\\\n\\\\r\\\\t\\\\f"',
+            json:encode("\\b\\n\\r\\t\\f"))
+    end)
+    test("num", function()
+        assert.equal('1', json:encode(1))
+        assert.equal('15', json:encode(15))
+        assert.equal('15.875', json:encode(15.875))
+        assert.equal('3737826852', json:encode(3737826852))
+    end)
+    test("empty table", function()
+        assert.are.same('[]', json:encode({}))
+    end)
+    test("list", function()
+        assert.equal('[1,"13"]', json:encode({1, "13"}))
+    end)
+    test("dict", function()
+        assert.equal('{"a":1,"b":"2"}', json:encode({a=1, b="2"}))
+        assert.are.same('{"a":1,"5":"x","6":"y"}',
+            json:encode({a=1, [5]="x", [6]="y"}))
+    end)
+    test("list in list", function()
+        assert.equal('[1,["x","y"]]', json:encode({1, {"x", "y"}}))
+    end)
+    test("list in dict", function()
+        assert.equal('{"a":[1,2,3]}', json:encode({a={1, 2, 3}}))
+    end)
+    test("dict in list", function()
+        assert.equal('[{"a":[1,2,3]},{"b":1,"c":2}]',
+            json:encode({{a={1, 2, 3}}, {b=1, c=2}}))
+    end)
+    test("pretty", function()
+        assert.equal(
+--- a multiline string with proper indentation
+[[{
+  "x": [ {
+    "a": [ 1, 2, 3 ]
+  }, {
+    "b": 1,
+    "c": 2
+  } ]
+}]],
+            json:encode_pretty({x={{a={1, 2, 3}}, {b=1, c=2}}}))
+    end)
+end)
+
+describe("json deserialize", function()
+    test("null", function()
+        assert.equal(json:decode('null'), nil)
+    end)
+    test("bool", function()
+        assert.equal(json:decode('true'), true)
+        assert.equal(json:decode('false'), false)
+    end)
+    test("str", function()
+        assert.equal(json:decode('"x"'), "x")
+        assert.equal(json:decode('"x\\\\"'), "x\\")
+        assert.equal(json:decode('"15"'), "15")
+        assert.equal(json:decode('"привет"'), "привет")
+        assert.equal(json:decode('"\\u2603"'), "☃")
+        assert.equal(json:decode('"☃"'), "☃")
+    end)
+    test("escapes", function()
+        assert.equal(json:decode('"\\\\b\\\\n\\\\r\\\\t\\\\f"'),
+                     "\\b\\n\\r\\t\\f")
+    end)
+    test("num", function()
+        assert.equal(json:decode('1'), 1)
+        assert.equal(json:decode('15'), 15)
+        assert.equal(json:decode('15.875'), 15.875)
+        assert.equal(json:decode('3737826852'), 3737826852)
+    end)
+    test("empty table", function()
+        assert.are.same(json:decode('[]'), {})
+        assert.are.same(json:decode('{}'), {})
+    end)
+    test("list", function()
+        assert.are.same(json:decode('[1,"13"]'), {1, "13"})
+    end)
+    test("dict", function()
+        assert.are.same(json:decode('{"a":1,"b":"2"}'), {a=1, b="2"})
+        assert.are.same(json:decode('{"5":"x","6":"y"}'),
+                        {["5"]="x", ["6"]="y"})
+    end)
+    test("list in list", function()
+        assert.are.same(json:decode('[1,["x","y"]]'), {1, {"x", "y"}})
+    end)
+    test("list in dict", function()
+        assert.are.same(json:decode('{"a":[1,2,3]}'), {a={1, 2, 3}})
+    end)
+    test("dict in list", function()
+        assert.are.same(json:decode('[{"a":[1,2,3]},{"b":1,"c":2}]'),
+            {{a={1, 2, 3}}, {b=1, c=2}})
+    end)
+end)
