@@ -1,5 +1,7 @@
 containers:
   check:
+    # Note this container is used with `SubConfig` in real schedulers
+    # So don't use external files here, please!
     setup:
     - !Alpine v3.4
     - !Repo edge/testing
