@@ -22,19 +22,6 @@ containers:
     - !Sh luarocks-5.3 install luacheck
     - !Sh luarocks-5.3 install luacov
 
-  install-v2:
-    environ:
-      HOME: /tmp
-    setup:
-    - !Alpine v3.4
-    - !Repo edge/testing
-    - *rocks
-    - !Text
-      /etc/luarocks/config-5.3.lua: |
-        rocks_trees = {{
-          root="/work/scheduler-install-meta/v2",
-          lua_dir="/work/scheduler/v2",
-        }}
 
 commands:
 
