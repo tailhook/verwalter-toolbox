@@ -50,6 +50,10 @@ local function schedule(sched)
         end, example_hosts)
     end
 
+    if sched.parents == nil then
+        sched.parents = {}
+    end
+
     return sched
 end
 
@@ -57,9 +61,12 @@ local function button(btn)
     return {button=btn}
 end
 
-local function steady_metric(host_index, role, metric, data_points, value)
+local function steady_metric(host_id, role, metric, data_points, value)
+    if type(host_id) == 'number' then
+        host_id = example_hosts[host_id].id
+    end
     return {
-        example_hosts[host_index].id,
+        host_id,
         {[role..'.'..metric]={
             type="multi_series",
             items={{
