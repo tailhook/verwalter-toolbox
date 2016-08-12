@@ -87,4 +87,5 @@ return {
     button=button,
     steady_metric=steady_metric,
     versions=versions,
+    BASE_TIMESTAMP=BASE_TIMESTAMP,
 }

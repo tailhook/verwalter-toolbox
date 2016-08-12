@@ -19,6 +19,27 @@ local function version_numbers(runtime)
     return list, set
 end
 
+local function latest_version_button(actions, valid_versions)
+    local latest = nil
+    for timestamp, act in pairs(actions) do
+        if act.button and act.button.version then
+            local ver = act.button.version
+            if valid_versions[ver] then
+                if latest == nil or latest.timestamp < timestamp then
+                    latest = {
+                        version=ver,
+                        timestamp=timestamp
+                    }
+                end
+            else
+                print("Version", ver, "activated by user is invalid")
+            end
+        end
+    end
+    return latest
+end
+
 return {
-    version_numbers=version_numbers
+    version_numbers=version_numbers,
+    latest_version_button=latest_version_button,
 }
