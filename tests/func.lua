@@ -192,3 +192,15 @@ describe("repeat_num", function()
         assert.are.same({}, func.repeat_num("x", 0))
     end)
 end)
+
+describe("list_to_set", function()
+
+    test("(list)", function()
+        assert.are.same({x=true, y=true}, func.list_to_set({"x", "y"}))
+    end)
+
+    test("(dict)", function()
+        assert.are.same({x=true, y=true}, func.list_to_set({a="x", b="y"}))
+    end)
+
+end)

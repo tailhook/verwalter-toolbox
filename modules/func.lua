@@ -114,6 +114,15 @@ local function repeat_num(value, num)
     return result
 end
 
+local function list_to_set(list)
+    local res = {}
+    for _, val in pairs(list) do
+        res[val] = true
+    end
+    return res
+end
+
+
 return {
     map=map,
     map_pairs=map_pairs,
@@ -128,4 +137,5 @@ return {
     sorted=sorted,
     range_step_num=range_step_num,
     repeat_num=repeat_num,
+    list_to_set=list_to_set,
 }
