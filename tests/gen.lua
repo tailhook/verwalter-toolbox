@@ -71,8 +71,20 @@ local function steady_metric(host_index, role, metric, data_points, value)
             }}}}}
 end
 
+local function versions(...)
+    local result = func.map_to_dict(function(_, ver)
+        -- TODO(tailhook) add some expected metadata
+        return ver, {some='value'}
+    end, {...})
+    -- Add some additional keys to filter out
+    result.project_name = "hello"
+    result.scheduler_kind = "fancy_thing"
+    return result
+end
+
 return {
     schedule=schedule,
     button=button,
     steady_metric=steady_metric,
+    versions=versions,
 }
