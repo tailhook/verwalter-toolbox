@@ -7,7 +7,6 @@ install:
 - luarocks install luacheck
 - luarocks install busted
 - luarocks install luacov
-- luarocks install luacov-coveralls
 script:
 - luacheck modules/*.lua tests/*.lua
 - busted --verbose --coverage tests/*.lua
