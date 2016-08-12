@@ -70,3 +70,64 @@ describe("latest_version_button() ", function()
             version_util.latest_version_button(buttons, valid_versions))
     end)
 end)
+
+describe("latest_parent_version()", function()
+    local valid_versions = func.list_to_set({"v1.0", "v1.1", "v2.0"})
+    local ts1 = BASE_TIMESTAMP + 1000
+    local ts2 = BASE_TIMESTAMP + 3000
+
+    test("no parents", function()
+        local parents = {}
+        assert.are.same(nil,
+            version_util.latest_parent_version(parents, valid_versions))
+    end)
+
+    test("invalid parent", function()
+        local parents = {{version="v7.4", version_timestamp=ts1}}
+        assert.are.same(nil,
+            version_util.latest_parent_version(parents, valid_versions))
+    end)
+
+    test("valid parent", function()
+        local parents = {{version="v1.1", version_timestamp=ts1}}
+        assert.are.same({version="v1.1", timestamp=ts1},
+            version_util.latest_parent_version(parents, valid_versions))
+    end)
+
+    test("valid and invalid parent", function()
+        local parents = {
+            {version="v1.1", version_timestamp=ts1},
+            {version="v1.7", version_timestamp=ts2},
+        }
+        assert.are.same({version="v1.1", timestamp=ts1},
+            version_util.latest_parent_version(parents, valid_versions))
+    end)
+
+    test("valid parents 1", function()
+        local parents = {
+            {version="v1.1", version_timestamp=ts1},
+            {version="v2.0", version_timestamp=ts2},
+        }
+        assert.are.same({version="v2.0", timestamp=ts2},
+            version_util.latest_parent_version(parents, valid_versions))
+    end)
+
+    test("valid parents 2", function()
+        local parents = {
+            {version="v2.0", version_timestamp=ts2},
+            {version="v1.1", version_timestamp=ts1},
+        }
+        assert.are.same({version="v2.0", timestamp=ts2},
+            version_util.latest_parent_version(parents, valid_versions))
+    end)
+
+    test("valid parents 3", function()
+        local parents = {
+            {version="v2.0", version_timestamp=ts1},
+            {version="v1.1", version_timestamp=ts2},
+        }
+        assert.are.same({version="v1.1", timestamp=ts2},
+            version_util.latest_parent_version(parents, valid_versions))
+    end)
+
+end)
