@@ -122,6 +122,15 @@ local function list_to_set(list)
     return res
 end
 
+local function merge_tables(...)
+    local result = {}
+    for _, dic in ipairs({...}) do
+        for k, v in pairs(dic) do
+            result[k] = v
+        end
+    end
+    return result
+end
 
 return {
     map=map,
@@ -138,4 +147,5 @@ return {
     range_step_num=range_step_num,
     repeat_num=repeat_num,
     list_to_set=list_to_set,
+    merge_tables=merge_tables,
 }
