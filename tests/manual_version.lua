@@ -2,10 +2,8 @@ local assert = require('luassert')
 local busted = require('busted')
 local test = busted.test
 local describe = busted.describe
--- local buttons = require("tests/gen").buttons
 local gen = require("tests/gen")
 
--- local func = require("modules/func")
 local manual_version = require("modules/manual_version")
 
 

@@ -79,9 +79,11 @@ local function steady_metric(host_id, role, metric, data_points, value)
 end
 
 local function versions(...)
+    local timestamp = math.floor(BASE_TIMESTAMP/1000)  -- in seconds
     local result = func.map_to_dict(function(_, ver)
+        timestamp = timestamp + 3600  -- another version each hour
         -- TODO(tailhook) add some expected metadata
-        return ver, {some='value'}
+        return ver, {timestamp=timestamp}
     end, {...})
     -- Add some additional keys to filter out
     result.project_name = "hello"
