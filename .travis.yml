@@ -12,4 +12,5 @@ script:
 - luacheck modules/*.lua tests/*.lua
 - busted --verbose --coverage tests/*.lua
 after_success:
+- ls -la .
 - bash <(curl -s https://codecov.io/bash)
