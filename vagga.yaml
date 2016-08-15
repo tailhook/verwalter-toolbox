@@ -15,8 +15,8 @@ containers:
       path: /usr/bin
 
     - !Tar
-      url: https://github.com/tailhook/verwalter/files/302835/verwalter-render-v0.3.3.tar.gz
-      sha256: db867f21b0f435dcf98ce4c51e954bdfcd44397cc8836b8a4a4d7cd90875e839
+      url: https://github.com/tailhook/verwalter/files/381841/verwalter-render-v0.5.0.tar.gz
+      sha256: fc284379a664d840cf1df087d8210d6c32cd030c0999e73b854297bc97bed45d
       path: /usr/bin
 
     - !BuildDeps [build-base, lua5.3-dev]
