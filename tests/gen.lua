@@ -42,6 +42,8 @@ local function schedule(sched)
             end
         end
         sched.metrics = metrics
+    else
+        sched.metrics = {}
     end
 
     if sched.peers == nil then
@@ -52,6 +54,10 @@ local function schedule(sched)
 
     if sched.parents == nil then
         sched.parents = {}
+    end
+
+    if sched.actions == nil then
+        sched.actions = {}
     end
 
     return sched

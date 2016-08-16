@@ -1,5 +1,6 @@
 local package = (...):match("(.-)[^/]+$")
 local func = require(package..'func')
+local version_util = require(package..'version_util')
 
 local function get_actions(state, role_name)
     return func.filter(
@@ -43,8 +44,39 @@ local function get_metrics(state, role_name)
     return metrics
 end
 
+local function state_by_role(state, config)
+    return func.map_to_dict(function(role_name, role_cfg)
+        local runtime = state.runtime[role_cfg.runtime]
+        local sorted, versions, params = version_util.split_versions(runtime)
+        return role_name, {
+            role=role_name,
+
+            -- legacy runtime
+            runtime=runtime,
+            -- new runtime
+            parameters=params,
+            versions=versions,
+            descending_versions=sorted,
+
+            -- split state
+            actions=get_actions(state, role_name),
+            parents=get_states(state, role_name),
+            metrics=get_metrics(state, role_name),
+
+            -- config
+            daemons=role_cfg.daemons,
+
+            -- global things
+            peers=state.peers,
+            peer_set=state.peer_set,
+            now=state.now,
+        }
+    end, config)
+end
+
 return {
     actions=get_actions,
     states=get_states,
     metrics=get_metrics,
+    state_by_role=state_by_role,
 }

@@ -129,3 +129,106 @@ describe("get_states", function()
                         split.states(schedule, "some-role"))
     end)
 end)
+
+describe("state by role", function()
+
+    -- TODO(tailhook) do something with unconfigured roles
+    test("empty config", function()
+        local schedule = gen.schedule {
+            runtime={
+                ['some-role']=gen.versions('v1.0', 'v2.0'),
+                ['other-role']=gen.versions('v2.1', 'v3.1'),
+            },
+            parents={
+                gen.schedule {state={['some-role']={version='v1.0'}}},
+                gen.schedule {state={['other-role']={version='v1.1'}}},
+            }}
+        assert.are.same({}, split.state_by_role(schedule, {}))
+    end)
+
+    test("some_config", function()
+        local ts1 = 1465482890
+        local ts2 = 1465486490
+        local schedule = gen.schedule {
+            runtime={
+                ['some-role']=gen.versions('v1.0', 'v2.0'),
+                ['other-role']=gen.versions('v2.1', 'v3.1'),
+            },
+            parents={
+                gen.schedule {state={['some-role']={version='v1.0'}}},
+                gen.schedule {state={['other-role']={version='v1.1'}}},
+            }}
+        assert.are.same({
+                awesome_role={
+                   actions={},
+                   daemons={},
+                   metrics={},
+                   parameters={
+                     project_name='hello',
+                     scheduler_kind='fancy_thing'},
+                   parents={},
+                   role='awesome_role',
+                   runtime={
+                      project_name='hello',
+                      scheduler_kind='fancy_thing',
+                      ['v2.0']={timestamp=ts2},
+                      ['v1.0']={timestamp=ts1},
+                   },
+                   versions={
+                      ['v2.0']={timestamp=ts2},
+                      ['v1.0']={timestamp=ts1},
+                   },
+                   descending_versions={'v2.0', 'v1.0'},
+                   peers = schedule.peers,
+                },
+                other_role={
+                   actions={},
+                   daemons={},
+                   metrics={},
+                   parameters={
+                    project_name='hello',
+                    scheduler_kind='fancy_thing'},
+                   parents={},
+                   role='other_role',
+                   runtime={
+                      project_name='hello',
+                      scheduler_kind='fancy_thing',
+                      ['v3.1']={timestamp=ts2},
+                      ['v2.1']={timestamp=ts1},
+                   },
+                   versions={
+                      ['v3.1']={timestamp=ts2},
+                      ['v2.1']={timestamp=ts1},
+                   },
+                   descending_versions={'v3.1', 'v2.1'},
+                   peers = schedule.peers,
+                },
+                another_role={
+                   actions={},
+                   daemons={},
+                   metrics={},
+                   parameters={
+                    project_name='hello',
+                    scheduler_kind='fancy_thing'},
+                   parents={},
+                   role='another_role',
+                   runtime={
+                      project_name='hello',
+                      scheduler_kind='fancy_thing',
+                      ['v3.1']={timestamp=ts2},
+                      ['v2.1']={timestamp=ts1},
+                   },
+                   versions={
+                      ['v3.1']={timestamp=ts2},
+                      ['v2.1']={timestamp=ts1},
+                   },
+                   descending_versions={'v3.1', 'v2.1'},
+                   peers = schedule.peers,
+                },
+            }, split.state_by_role(schedule, {
+                awesome_role={runtime='some-role', daemons={}},
+                other_role={runtime='other-role', daemons={}},
+                another_role={runtime='other-role', daemons={}},
+            }))
+    end)
+end)
