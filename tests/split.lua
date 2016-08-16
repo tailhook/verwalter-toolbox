@@ -146,6 +146,31 @@ describe("state by role", function()
         assert.are.same({}, split.state_by_role(schedule, {}))
     end)
 
+    -- TODO(tailhook) do something with unconfigured roles
+    test("empty runtime", function()
+        local schedule = gen.schedule {
+            runtime={},
+            parents={
+                gen.schedule {state={['some-role']={version='v1.0'}}},
+                gen.schedule {state={['other-role']={version='v1.1'}}},
+            }}
+        assert.are.same({awesome_role={
+            actions={},
+            daemons={},
+            descending_versions={},
+            metrics={},
+            parameters={},
+            parents={},
+            peers=schedule.peers,
+            role='awesome_role',
+            runtime={},
+            versions={},
+            }}, split.state_by_role(schedule, {
+                awesome_role={runtime='some-role', daemons={}}
+            }))
+
+    end)
+
     test("some_config", function()
         local ts1 = 1465482890
         local ts2 = 1465486490

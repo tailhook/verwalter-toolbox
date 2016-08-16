@@ -46,7 +46,7 @@ end
 
 local function state_by_role(state, config)
     return func.map_to_dict(function(role_name, role_cfg)
-        local runtime = state.runtime[role_cfg.runtime]
+        local runtime = state.runtime[role_cfg.runtime] or {}
         local sorted, versions, params = version_util.split_versions(runtime)
         return role_name, {
             role=role_name,
