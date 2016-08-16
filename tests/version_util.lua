@@ -131,3 +131,17 @@ describe("latest_parent_version()", function()
     end)
 
 end)
+
+describe("split_versions() filter", function()
+    test("default generated schedule", function()
+        local list, map, params = version_util.split_versions(
+            versions("v1.0", "v1.1"))
+        assert.are.same({
+            {"v1.1", "v1.0"},
+            {["v1.1"]={timestamp=1465486490},
+             ["v1.0"]={timestamp=1465482890}},
+            {project_name='hello',
+             scheduler_kind='fancy_thing'},
+            }, {list, map, params})
+    end)
+end)

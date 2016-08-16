@@ -19,6 +19,28 @@ local function version_numbers(runtime)
     return list, set
 end
 
+-- The runtime dictionary is a "runtime" folder from verwalter
+-- which basically represents a directory. So it contains both: version
+-- number directories and some plain files with project scoped metadata.
+--
+-- This function sorts things into two groups: versions and parameters,
+-- and also returns sorted list of them
+local function split_versions(runtime)
+    local list = {}
+    local map = {}
+    local params = {}
+    for key, value in pairs(runtime) do
+        if key:find("^v%d") then
+            list[#list+1] = key
+            map[key] = value
+        else
+            params[key] = value
+        end
+    end
+    table.sort(list, function(a, b) return version.compare(b, a) end)
+    return list, map, params
+end
+
 local function latest_version_button(actions, valid_versions)
     local latest = nil
     for timestamp, act in pairs(actions) do
@@ -62,4 +84,5 @@ return {
     version_numbers=version_numbers,
     latest_version_button=latest_version_button,
     latest_parent_version=latest_parent_version,
+    split_versions=split_versions,
 }
