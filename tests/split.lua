@@ -16,7 +16,7 @@ describe("get_actions", function()
             gen.button { role='some-role', version='v0.0.0' },
         }}
         assert.are.same(
-            {{button={role='some-role', version='v0.0.0'}}},
+            {[1465479290007]={button={role='some-role', version='v0.0.0'}}},
             split.actions(schedule, "some-role"))
     end)
     test("filtered out", function()
@@ -25,7 +25,7 @@ describe("get_actions", function()
             gen.button { role='other-role', version='v1.1.0' },
         }}
         assert.are.same(
-            {{button={role='some-role', version='v0.0.0'}}},
+            {[1465479290007]={button={role='some-role', version='v0.0.0'}}},
             split.actions(schedule, "some-role"))
     end)
 end)
@@ -175,6 +175,9 @@ describe("state by role", function()
         local ts1 = 1465482890
         local ts2 = 1465486490
         local schedule = gen.schedule {
+            actions={
+                gen.button { role='awesome_role', version='v1.0' },
+            },
             runtime={
                 ['some-role']=gen.versions('v1.0', 'v2.0'),
                 ['other-role']=gen.versions('v2.1', 'v3.1'),
@@ -185,7 +188,10 @@ describe("state by role", function()
             }}
         assert.are.same({
                 awesome_role={
-                   actions={},
+                   actions={
+                       [1465479290007]={button=
+                            {role='awesome_role', version='v1.0'}},
+                   },
                    daemons={},
                    metrics={},
                    parameters={

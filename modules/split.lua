@@ -3,8 +3,12 @@ local func = require(package..'func')
 local version_util = require(package..'version_util')
 
 local function get_actions(state, role_name)
-    return func.filter(
-        function (a) return a.button.role == role_name end,
+    return func.filter_pairs(
+        function (ts, act)
+            if act.button.role == role_name then
+                return ts, act
+            end
+        end,
         state.actions)
 end
 
