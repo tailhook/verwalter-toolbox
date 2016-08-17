@@ -16,9 +16,9 @@ local function schedule(sched)
     if sched.actions then
         sched.actions = func.map_to_dict(function(key, value)
             if key < 1000000000000 then
-                return BASE_TIMESTAMP + key*7, value
+                return tostring(BASE_TIMESTAMP + key*7), value
             else
-                return key, value
+                return tostring(key), value
             end
         end, sched.actions)
     end

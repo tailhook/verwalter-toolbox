@@ -10,7 +10,9 @@ local manual_version = require("modules/manual_version")
 describe("manual_version.select()", function()
     local runtime = gen.versions("v1.0", "v1.1", "v2.0")
     local ts1 = gen.BASE_TIMESTAMP + 1000
+    local ts1s = tostring(ts1)
     local ts2 = gen.BASE_TIMESTAMP + 3000
+    local ts2s = tostring(ts2)
 
     test("default version", function()
         local _, version = manual_version.select({
@@ -36,7 +38,7 @@ describe("manual_version.select()", function()
     test("button", function()
         local _, version = manual_version.select({
             runtime=runtime,
-            actions={[ts2]={button={version="v1.1", role='some-role'}}},
+            actions={[ts2s]={button={version="v1.1", role='some-role'}}},
             parents={
                 {version="v2.0", version_timestamp=ts1},
             }
@@ -47,7 +49,7 @@ describe("manual_version.select()", function()
     test("button late", function()
         local _, version = manual_version.select({
             runtime=runtime,
-            actions={[ts1]={button={version="v1.1", role='some-role'}}},
+            actions={[ts1s]={button={version="v1.1", role='some-role'}}},
             parents={
                 {version="v2.0", version_timestamp=ts2},
             },

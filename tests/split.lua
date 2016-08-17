@@ -16,7 +16,7 @@ describe("get_actions", function()
             gen.button { role='some-role', version='v0.0.0' },
         }}
         assert.are.same(
-            {[1465479290007]={button={role='some-role', version='v0.0.0'}}},
+            {['1465479290007']={button={role='some-role', version='v0.0.0'}}},
             split.actions(schedule, "some-role"))
     end)
     test("filtered out", function()
@@ -25,7 +25,7 @@ describe("get_actions", function()
             gen.button { role='other-role', version='v1.1.0' },
         }}
         assert.are.same(
-            {[1465479290007]={button={role='some-role', version='v0.0.0'}}},
+            {['1465479290007']={button={role='some-role', version='v0.0.0'}}},
             split.actions(schedule, "some-role"))
     end)
 end)
@@ -189,7 +189,7 @@ describe("state by role", function()
         assert.are.same({
                 awesome_role={
                    actions={
-                       [1465479290007]={button=
+                       ['1465479290007']={button=
                             {role='awesome_role', version='v1.0'}},
                    },
                    daemons={},

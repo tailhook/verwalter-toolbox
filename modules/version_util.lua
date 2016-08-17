@@ -44,6 +44,7 @@ end
 local function latest_version_button(actions, valid_versions)
     local latest = nil
     for timestamp, act in pairs(actions) do
+        timestamp = tonumber(timestamp)
         if act.button and act.button.version then
             local ver = act.button.version
             if valid_versions[ver] then
