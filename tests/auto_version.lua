@@ -15,7 +15,9 @@ describe("auto_version.select()", function()
     local v11ts = gen.BASE_TIMESTAMP + 2*3600000
     local v20ts = gen.BASE_TIMESTAMP + 3*3600000
     local ts1 = gen.BASE_TIMESTAMP + 2*3600000 + 10
+    local ts1s = tostring(ts1)
     local ts2 = gen.BASE_TIMESTAMP + 3*3600000 + 10
+    local ts2s = tostring(ts2)
     local ts_now = gen.BASE_TIMESTAMP + 5*3600000 + 20
 
     test("default version", function()
@@ -44,7 +46,7 @@ describe("auto_version.select()", function()
     test("button", function()
         local _, version = auto_version.select({
             runtime=runtime,
-            actions={[ts2]={button={version="v1.1", role='some-role'}}},
+            actions={[ts2s]={button={version="v1.1", role='some-role'}}},
             now=ts_now,
             parents={
                 {version="v2.0", version_timestamp=v20ts},
@@ -57,7 +59,7 @@ describe("auto_version.select()", function()
         assert(v20ts > ts1)
         local _, version = auto_version.select({
             runtime=runtime,
-            actions={[ts1]={button={version="v1.1", role='some-role'}}},
+            actions={[ts1s]={button={version="v1.1", role='some-role'}}},
             now=ts_now,
             parents={
                 {version="v2.0", version_timestamp=v20ts},
