@@ -1,4 +1,5 @@
 containers:
+
   check:
     # Note this container is used with `SubConfig` in real schedulers
     # So don't use external files here, please!
@@ -23,6 +24,29 @@ containers:
     - !Sh luarocks-5.3 install busted
     - !Sh luarocks-5.3 install luacheck
     - !Sh luarocks-5.3 install luacov
+
+  imitation:
+    # Note this container is used with `SubConfig` in real schedulers
+    # So don't use external files here, please!
+    setup:
+    - !Ubuntu xenial
+    - !UbuntuRepo
+      url: http://repo.mglawica.org/ubuntu/
+      suite: xenial
+      components: [verwalter-testing]
+      trusted: true
+    - !Install [verwalter]
+    - !PipConfig { dependencies: true }
+    - !Py3Install
+      - aiohttp==0.22.5
+    - !Download
+      url: https://raw.githubusercontent.com/tailhook/verwalter/master/util/fake-cantal.py
+      path: /usr/bin/fake-cantal
+    - !Download
+      url: https://raw.githubusercontent.com/tailhook/verwalter/master/util/fetch-runtime.py
+      path: /usr/bin/fetch-runtime
+    - !Sh |
+        chmod +x /usr/bin/fake-cantal /usr/bin/fetch-runtime
 
 
 commands:
