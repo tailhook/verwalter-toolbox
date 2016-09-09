@@ -132,6 +132,14 @@ local function merge_tables(...)
     return result
 end
 
+local function sum(table)
+    local result = 0
+    for _, v in pairs(table) do
+        result = result + v
+    end
+    return result
+end
+
 return {
     map=map,
     map_pairs=map_pairs,
@@ -148,4 +156,5 @@ return {
     repeat_num=repeat_num,
     list_to_set=list_to_set,
     merge_tables=merge_tables,
+    sum=sum,
 }

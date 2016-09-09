@@ -220,3 +220,16 @@ describe("merge_tables", function()
             func.merge_tables({x=1}, {y=2}, {7, 8}))
     end)
 end)
+
+describe("sum: sum numerical values of the dict or list", function()
+    test("(list)", function()
+        assert.are.same(
+            func.sum({1, 2, 3}),
+            6)
+    end)
+    test("(dict)", function()
+        assert.are.same(
+            func.sum({7, b=8, c=9}),
+            24)
+    end)
+end)
