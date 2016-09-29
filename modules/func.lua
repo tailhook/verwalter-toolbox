@@ -83,6 +83,20 @@ local function _copy(orig)
     return copy
 end
 
+local function deepcopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+            copy[orig_key] = deepcopy(orig_value)
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
 local function contains(haystack, needle)
     for _, x in pairs(haystack) do
         if x == needle then
@@ -150,6 +164,7 @@ return {
     filter_pairs=filter_pairs,
     count_keys=count_keys,
     copy=_copy,
+    deepcopy=deepcopy,
     contains=contains,
     sorted=sorted,
     range_step_num=range_step_num,

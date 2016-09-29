@@ -117,6 +117,19 @@ describe("count_keys: count keys in a table", function()
     end)
 end)
 
+describe("copy: a deep copy of table", function()
+    test("(dict)", function()
+        assert.are.same({"x", y={"z"}},
+            func.copy({"x", y={"z"}}))
+    end)
+    test("(mutate)", function()
+        local x = {"x", y={"z"}}
+        local y = func.deepcopy(x)
+        table.insert(y.y, "zz")
+        assert.are.same(x, {"x", y={"z"}})
+        assert.are.same(y, {"x", y={"z", "zz"}})
+    end)
+end)
 describe("copy: a shallow copy of table", function()
     test("(list)", function()
         assert.are.same({"x", "y", "z"},
