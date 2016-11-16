@@ -5,7 +5,7 @@ containers:
     # So don't use external files here, please!
     setup:
     - !Alpine v3.4
-    - !Repo edge/testing
+    - !Repo edge/community
     - &rocks !Install [lua5.3, luarocks5.3, ca-certificates, curl]
     - !Sh |
         echo 'variables = { CC = "gcc -I/usr/include/lua5.3" }' >> /etc/luarocks/config-5.3.lua
