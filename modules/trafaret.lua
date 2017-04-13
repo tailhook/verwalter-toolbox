@@ -3,6 +3,7 @@ local _Number = {}
 local _String = {}
 local _Dict = {}
 local _Key = {}
+local _List = {}
 
 
 function _Number:convert(value, validator, path)
@@ -129,6 +130,28 @@ function _Validator:add_error(path, _, message, ...)
     table.insert(self.errors, text)
 end
 
+local function List(props)
+    local item = props[1]
+    local obj = {
+        item=item,
+    }
+    setmetatable(obj, {__index=_List})
+    return obj
+end
+
+function _List:convert(value, validator, path)
+    if type(value) ~= 'table' then
+        validator:add_error(path, self,
+            "Value is not a table, but", type(value))
+        return {}
+    end
+    local result = {}
+    for i, item in ipairs(value) do
+        result[i] = self.item:convert(item, validator, path .. '.' .. i)
+    end
+    return result
+end
+
 local function validate(trafaret, value)
     local val = Validator()
     local status, cleaned = xpcall(
@@ -150,5 +173,6 @@ return {
     String=String,
     Dict=Dict,
     Key=Key,
+    List=List,
     validate=validate,
 }
