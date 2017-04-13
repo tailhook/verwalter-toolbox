@@ -1,5 +1,6 @@
 local _Validator = {}
 local _Number = {}
+local _String = {}
 
 
 function _Number:convert(value, validator, path)
@@ -14,6 +15,21 @@ end
 local function Number(_)
     local obj = {}
     setmetatable(obj, {__index=_Number})
+    return obj
+end
+
+function _String:convert(value, validator, path)
+    if type(value) == 'string' then
+        return value
+    end
+    validator:add_error(path, self,
+        "Value is not a string, but", type(value))
+    return tostring(value)
+end
+
+local function String(_)
+    local obj = {}
+    setmetatable(obj, {__index=_String})
     return obj
 end
 
@@ -51,5 +67,6 @@ end
 
 return {
     Number=Number,
+    String=String,
     validate=validate,
 }
