@@ -27,6 +27,7 @@ end)
 
 describe("trafaret: string", function()
     local str = T.String{}
+    local ver = T.String{pattern="^v%d"}
     test("validate str", function()
         assert(T.validate(str, "xxx"))
         assert(T.validate(str, "111"))
@@ -41,6 +42,14 @@ describe("trafaret: string", function()
         local res, _, err = T.validate(str, {})
         assert(not res)
         assert.is.same(err, {": Value is not a string, but table"})
+    end)
+    test("validate ver", function()
+        assert(T.validate(ver, "v1"))
+        assert(T.validate(ver, "v1.2.3"))
+        assert(T.validate(ver, "v1.2.3"))
+        assert(not T.validate(ver, "1.2.3"))
+        assert(not T.validate(ver, "xxx"))
+        assert(not T.validate(ver, "vvv"))
     end)
 end)
 

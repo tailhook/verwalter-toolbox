@@ -23,16 +23,24 @@ local function Number(_)
 end
 
 function _String:convert(value, validator, path)
-    if type(value) == 'string' then
-        return value
+    if type(value) ~= 'string' then
+        validator:add_error(path, self,
+            "Value is not a string, but", type(value))
+        return tostring(value)
     end
-    validator:add_error(path, self,
-        "Value is not a string, but", type(value))
-    return tostring(value)
+    if self.pattern ~= nil then
+        if not string.find(value, self.pattern) then
+            validator:add_error(path, self,
+                "Value doesn't match pattern ", self.pattern)
+        end
+    end
+    return value
 end
 
-local function String(_)
-    local obj = {}
+local function String(props)
+    local obj = {
+        pattern=props.pattern,
+    }
     setmetatable(obj, {__index=_String})
     return obj
 end
