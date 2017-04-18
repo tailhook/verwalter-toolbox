@@ -4,6 +4,7 @@ local _String = {}
 local _Dict = {}
 local _Key = {}
 local _List = {}
+local _Map = {}
 
 
 function _Number:convert(value, validator, path)
@@ -114,6 +115,32 @@ local function Dict(keys)
     return obj
 end
 
+function _Map:convert(value, validator, path)
+    if type(value) ~= 'table' then
+        validator:add_error(path, self,
+            "Value is not a table, but", type(value))
+        return {}
+    end
+    local result = {}
+    for k, v in pairs(value) do
+        local nk = self.key:convert(k, validator, path .. "<key>")
+        local nv = self.value:convert(v, validator, path .. "." .. nk)
+        result[nk] = nv
+    end
+    return result
+end
+
+local function Map(props)
+    local key = props[1]
+    local value = props[2]
+    local obj = {
+        key=key,
+        value=value,
+    }
+    setmetatable(obj, {__index=_Map})
+    return obj
+end
+
 local function Validator()
     local validator = {
         errors={}
@@ -174,5 +201,6 @@ return {
     Dict=Dict,
     Key=Key,
     List=List,
+    Map=Map,
     validate=validate,
 }
