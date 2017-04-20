@@ -154,6 +154,15 @@ local function sum(table)
     return result
 end
 
+local function array_extend(list, ...)
+    for _, sublist in pairs({...}) do
+        for _, v in ipairs(sublist) do
+            table.insert(list, v)
+        end
+    end
+    return list
+end
+
 return {
     map=map,
     map_pairs=map_pairs,
@@ -171,5 +180,6 @@ return {
     repeat_num=repeat_num,
     list_to_set=list_to_set,
     merge_tables=merge_tables,
+    array_extend=array_extend,
     sum=sum,
 }
