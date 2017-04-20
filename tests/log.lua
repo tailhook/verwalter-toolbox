@@ -8,17 +8,17 @@ local log = require("modules/log")
 describe("log: wrap scheduler", function()
     test("normal_output", function()
         local data, output = log.wrap_scheduler(function()
-            return "{}"
+            return {a=1}
         end)({})
-        assert.is.same(data, "{}")
+        assert.is.same(data, '{"a":1}')
         assert.is.same(output, "")
     end)
     test("print", function()
         local data, output = log.wrap_scheduler(function()
             print("hello")
-            return "{}"
+            return {a=1}
         end)({})
-        assert.is.same(data, "{}")
+        assert.is.same(data, '{"a":1}')
         assert.is.same(output,
             "[no-role]:DEBUG: hello\n")
     end)
@@ -29,7 +29,7 @@ describe("log: wrap scheduler", function()
                 x.call_non_existent_method()
             end
             test_subfunction()
-            return "{}"
+            return {a=1}
         end)({})
         assert.is.same(data, nil)
         assert(output:find("attempt to call a nil value"))

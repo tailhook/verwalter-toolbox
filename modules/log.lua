@@ -1,4 +1,9 @@
+local package = (...):match("(.-)[^/]+$")
+local json = require(package.."json")
+local func = require(package.."func")
+
 local text = nil
+local changes = {}
 
 local function print(...)
     text = text .. "[no-role]:DEBUG: "
@@ -15,15 +20,21 @@ local function wrap_scheduler(real_scheduler)
     return function(state)
         local original_print = _G.print
         text = ""
+        changes = {}
         _G.print = print
 
         local flag, value = xpcall(
-            function() return real_scheduler(state) end,
+            function()
+                local data = real_scheduler(state)
+                func.array_extend(data.changes, changes)
+                return json:encode(data)
+            end,
             debug.traceback)
 
         local current_text = text
         _G.print = original_print
         text = nil
+        changes = nil
 
         if flag then
             return value, current_text
