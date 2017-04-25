@@ -1,5 +1,6 @@
 local table = require("table")
 local func = require("modules/func")
+local role_module = require("modules/role")
 
 -- just some arbitrary base time
 local BASE_TIMESTAMP = 1465479290000
@@ -97,10 +98,25 @@ local function versions(...)
     return result
 end
 
+local function role(name)
+    local x = role_module.from_fields({
+        name=name,
+
+        parameters={},
+        versions={},
+        descending_versions={},
+
+        actions={},
+        parents={},
+    })
+    return x
+end
+
 return {
     schedule=schedule,
     button=button,
     steady_metric=steady_metric,
     versions=versions,
     BASE_TIMESTAMP=BASE_TIMESTAMP,
+    role=role,
 }

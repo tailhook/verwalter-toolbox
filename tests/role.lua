@@ -55,3 +55,21 @@ describe("state by role", function()
             }, role.from_state(schedule))
     end)
 end)
+
+describe("merge output", function()
+    test("two roles", function()
+        assert.are.same(
+            role.merge_output({x=gen.role('x'), y=gen.role('y')}),
+            {
+                nodes={},
+                roles={
+                    x={},
+                    y={},
+                },
+                state={
+                    x={},
+                    y={},
+                },
+            })
+    end)
+end)

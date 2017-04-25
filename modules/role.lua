@@ -18,6 +18,10 @@ function _Role:output()
     }
 end
 
+local function tostring(self)
+    return 'Role "'..self.name..'" {}'
+end
+
 local function split_actions(state)
     local result = {}
 
@@ -53,12 +57,18 @@ local function split_states(state)
     return result
 end
 
+-- this is mostly for tests
+local function from_fields(params)
+    setmetatable(params, {__index=_Role, __tostring=tostring})
+    return params
+end
+
 local function from_state(state)
     local actions = split_actions(state)
     local states = split_states(state)
     return func.map_pairs(function(role_name, runtime)
         local sorted, versions, params = version_util.split_versions(runtime)
-        local role = {
+        return from_fields({
             name=role_name,
 
             parameters=params,
@@ -69,12 +79,36 @@ local function from_state(state)
             parents=states[role_name] or {},
             -- TODO(tailhook)
             -- metrics=get_metrics(state, role_name),
-        }
-        setmetatable(role, _Role)
-        return role
+        })
     end, state.runtime)
+end
+
+local function merge_output(dict)
+    local result = {
+        state={},
+        roles={},
+        nodes={},
+    }
+    for role_name, role in pairs(dict) do
+        local output = role:output()
+        result.state[role_name] = output.state
+        result.roles[role_name] = output.role
+        for node_name, node_role in pairs(role.nodes or {}) do
+            local mnode = result.nodes[node_name]
+            if mnode == nil then
+                mnode = {
+                    roles={},
+                }
+                result.nodes[node_name] = mnode
+            end
+            mnode.roles[role_name] = node_role
+        end
+    end
+    return result
 end
 
 return {
     from_state=from_state,
+    from_fields=from_fields,  -- for tests
+    merge_output=merge_output,
 }
