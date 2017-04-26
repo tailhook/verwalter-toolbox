@@ -12,7 +12,7 @@ function _Role:output()
     local _ = self
     return {
         state={},
-        role={},
+        role={frontend={kind='api'}},
         nodes={},
         metrics={},
     }
