@@ -12,7 +12,10 @@ function _Role:output()
     local _ = self
     return {
         state={},
-        role={frontend={kind='api'}},
+        role={
+            frontend={kind='api'},
+            versions=self.descending_versions,
+        },
         nodes={},
         metrics={},
     }
