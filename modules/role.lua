@@ -4,8 +4,8 @@ local version_util = require(package..'version_util')
 
 local _Role = {}
 
-function _Role:independent_scheduling()
-    local _ = self
+function _Role:independent_scheduling(scheduler)
+    scheduler.independent_scheduling(self)
 end
 
 function _Role:output()
@@ -50,9 +50,9 @@ local function split_states(state)
         for role_name, role_state in pairs(par.state) do
             local tbl = result[role_name]
             if tbl == nil then
-                result[role_name] = {role_state}
+                result[role_name] = {{state=role_state}}
             else
-                table.insert(tbl, role_state)
+                table.insert(tbl, {state=role_state})
             end
         end
     end

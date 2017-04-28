@@ -31,7 +31,7 @@ describe("state by role", function()
                    parameters={
                     project_name='hello',
                     scheduler_kind='fancy_thing'},
-                   parents={{version="v1.1"}},
+                   parents={{state={version="v1.1"}}},
                    name='other_role',
                    versions={
                       ['v3.1']={timestamp=ts2},
@@ -44,7 +44,7 @@ describe("state by role", function()
                    parameters={
                     project_name='hello',
                     scheduler_kind='fancy_thing'},
-                   parents={{version="v1.0"}},
+                   parents={{state={version="v1.0"}}},
                    name='some_role',
                    versions={
                       ['v2.0']={timestamp=ts2},
