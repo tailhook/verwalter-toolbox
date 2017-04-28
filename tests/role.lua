@@ -63,8 +63,14 @@ describe("merge output", function()
             {
                 nodes={},
                 roles={
-                    x={},
-                    y={},
+                    x={
+                        frontend={kind="api"},
+                        versions={},
+                    },
+                    y={
+                        frontend={kind="api"},
+                        versions={},
+                    },
                 },
                 state={
                     x={},
