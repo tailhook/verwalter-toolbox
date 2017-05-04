@@ -4,9 +4,8 @@ local func = require(package..'func')
 local _Role = {}
 
 function _Role:output()
-    local _ = self
     return {
-        state={},
+        state=self.state,
         role={
             frontend={kind='api'},
             versions=self.descending_versions,
