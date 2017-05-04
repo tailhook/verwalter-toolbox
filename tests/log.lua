@@ -53,4 +53,13 @@ describe("log: wrap scheduler", function()
         assert.is.same(output,
             "[other]:DEBUG: some data\n")
     end)
+    test("role change", function()
+        local data, output = log.wrap_scheduler(function()
+            log.role_change("other", "important", "change")
+            return {a=1}
+        end)({})
+        assert.is.same('{"a":1,"changes":["other: important change"]}', data)
+        assert.is.same(output,
+            "[other]:CHANGE: important change\n")
+    end)
 end)

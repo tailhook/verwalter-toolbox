@@ -28,6 +28,15 @@ local function role_debug(role_name, ...)
     log(role_name, "DEBUG", ...)
 end
 
+local function role_change(role_name, ...)
+    log(role_name, "CHANGE", ...)
+    local change = role_name .. ":"
+    for _, v in pairs({...}) do
+        change = change .. " " .. tostring(v)
+    end
+    table.insert(changes, change)
+end
+
 local function wrap_scheduler(real_scheduler)
     return function(state)
         local original_print = _G.print
@@ -38,7 +47,12 @@ local function wrap_scheduler(real_scheduler)
         local flag, value = xpcall(
             function()
                 local data = real_scheduler(state)
-                func.array_extend(data.changes, changes)
+                if #changes ~= 0 then
+                    if not data.changes then
+                        data.changes = {}
+                    end
+                    func.array_extend(data.changes, changes)
+                end
                 return json:encode(data)
             end,
             debug.traceback)
@@ -60,4 +74,5 @@ return {
     wrap_scheduler=wrap_scheduler,
     role_error=role_error,
     role_debug=role_debug,
+    role_change=role_change,
 }
