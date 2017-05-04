@@ -22,7 +22,6 @@ end
 
 local function split_actions(state)
     local result = {}
-
     for timestamp, action in pairs(state.actions) do
         local role = action.button and action.button.role
         if role then
@@ -34,6 +33,7 @@ local function split_actions(state)
             end
         end
     end
+
 
     return result
 end
