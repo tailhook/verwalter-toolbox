@@ -26,20 +26,7 @@ local ACTION = T.Or {
     },
 }
 
-
-local function prepare(params)
-    local role = params[1]
-    local runtime = params.runtime
-    local global_state = params.global_state
-    local actions = params.actions
-    local parents = params.states
-    local sorted, versions, params = version_util.split_versions(runtime)
-
-    -- TODO(tailhook) validate versions, actions and parents
-    role.params = params
-    role.versions = versions
-    role.descending_versions = sorted
-
+local function check_actions(role, actions)
     local invalid_actions = {}
     local valid_actions = {}
     for ts, action in pairs(actions) do
@@ -53,7 +40,23 @@ local function prepare(params)
             end
         end
     end
-    role.actions = valid_actions
+    return valid_actions, invalid_actions
+end
+
+local function prepare(params)
+    local role = params[1]
+    local global_state = params.global_state
+    local parents = params.states
+
+    local actions, invalid_actions = check_actions(role, params.actions)
+    local sorted, vers, params = version_util.split_versions(params.runtime)
+
+    -- TODO(tailhook) validate versions and parents
+    role.params = params
+    role.versions = vers
+    role.descending_versions = sorted
+
+    role.actions = actions
     role.invalid_actions = invalid_actions
 
     role.parents = parents
