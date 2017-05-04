@@ -5,8 +5,8 @@ local func = require(package.."func")
 local text = nil
 local changes = {}
 
-local function print(...)
-    text = text .. "[no-role]:DEBUG: "
+local function log(role_name, level_name, ...)
+    text = text .. "["..role_name.."]:"..level_name..": "
     for i, v in pairs({...}) do
         if i > 1 then
             text = text .. " "
@@ -16,15 +16,16 @@ local function print(...)
     text = text .. "\n"
 end
 
+local function print(...)
+    log("no-role", "DEBUG", ...)
+end
+
 local function role_error(role_name, ...)
-    text = text .. "["..role_name.."]:ERROR: "
-    for i, v in pairs({...}) do
-        if i > 1 then
-            text = text .. " "
-        end
-        text = text .. tostring(v)
-    end
-    text = text .. "\n"
+    log(role_name, "ERROR", ...)
+end
+
+local function role_debug(role_name, ...)
+    log(role_name, "DEBUG", ...)
 end
 
 local function wrap_scheduler(real_scheduler)
@@ -58,4 +59,5 @@ end
 return {
     wrap_scheduler=wrap_scheduler,
     role_error=role_error,
+    role_debug=role_debug,
 }
