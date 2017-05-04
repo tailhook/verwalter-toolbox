@@ -163,3 +163,26 @@ describe("trafaret: map", function()
         assert.is.same(val, {a=1, c=3})  --- b=nil skipped
     end)
 end)
+
+describe("trafaret: or", function()
+    local alt = T.Or { T.String{}, T.Number{} }
+    test("string", function()
+        local res, val, _ = T.validate(alt, "x")
+        assert(res)
+        assert.is.same(val, "x")
+    end)
+    test("number", function()
+        local res, val, _ = T.validate(alt, 1)
+        assert(res)
+        assert.is.same(val, 1)
+    end)
+    test("table", function()
+        local res, val, err = T.validate(alt, {x=1})
+        assert(not res)
+        assert.is.same(val, {x=1})
+        assert.is.same(err, {
+            ".<alternative 1>: Value is not a string, but table",
+            ".<alternative 2>: Value is not a number, but table",
+        })
+    end)
+end)

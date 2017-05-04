@@ -1,3 +1,6 @@
+local package = (...):match("(.-)[^/]+$")
+local func = require(package.."func")
+
 local _Validator = {}
 local _Number = {}
 local _String = {}
@@ -6,7 +9,7 @@ local _Key = {}
 local _List = {}
 local _Map = {}
 local _Atom = {}
-
+local _Or = {}
 
 function _Atom:convert(value, validator, path)
     if value == self.value then
@@ -203,6 +206,32 @@ function _List:convert(value, validator, path)
     return result
 end
 
+function _Or:convert(value, validator, path)
+    local real_value = value
+    local all_errors = {}
+    for i, val in ipairs(self.options) do
+        local cur_val = Validator()
+        local cur = val:convert(value, cur_val,
+            path .. '.<alternative ' .. i .. '>')
+        if #cur_val.errors == 0 then
+            return cur
+        end
+        func.array_extend(all_errors, cur_val.errors)
+    end
+    func.array_extend(validator.errors, all_errors)
+    return real_value
+end
+
+local function Or(params)
+    local arr = {}
+    for i, item in ipairs(params) do
+        arr[i] = item
+    end
+    local obj = {options=arr}
+    setmetatable(obj, {__index=_Or})
+    return obj
+end
+
 local function validate(trafaret, value)
     local val = Validator()
     local status, cleaned = xpcall(
@@ -227,5 +256,6 @@ return {
     Key=Key,
     List=List,
     Map=Map,
+    Or=Or,
     validate=validate,
 }
