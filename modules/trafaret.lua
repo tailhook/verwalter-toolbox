@@ -104,7 +104,7 @@ function _Dict:convert(value, validator, path)
     end
     for _, key in pairs(self.required_keys) do
         if result[key] == nil then
-            local default = self.all_keys[key].default;
+            local default = self.all_keys[key].default
             if default ~= nil then
                 result[key] = default
             else

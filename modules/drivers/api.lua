@@ -29,7 +29,7 @@ local ACTION = T.Or {
 }
 
 local STATE = T.Dict {
-    groups=T.Map { T.String {}, T.Dict {
+    [T.Key { "groups", default={} }]=T.Map { T.String {}, T.Dict {
     }},
 }
 
