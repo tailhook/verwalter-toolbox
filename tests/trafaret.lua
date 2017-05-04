@@ -5,6 +5,25 @@ local describe = busted.describe
 
 local T = require("modules/trafaret")
 
+describe("trafaret: atom", function()
+    local number = T.Atom{1}
+    local str = T.Atom{"x"}
+    test("validate number", function()
+        assert(T.validate(number, 1))
+    end)
+    test("validate wrong number", function()
+        assert(not T.validate(number, 2))
+        assert(not T.validate(number, '1'))
+    end)
+    test("validate string", function()
+        assert(T.validate(str, 'x'))
+    end)
+    test("validate wrong string", function()
+        assert(not T.validate(str, 2))
+        assert(not T.validate(str, 'xx'))
+        assert(not T.validate(str, 'y'))
+    end)
+end)
 
 describe("trafaret: number", function()
     local number = T.Number{}

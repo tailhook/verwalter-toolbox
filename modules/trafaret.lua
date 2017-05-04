@@ -5,7 +5,23 @@ local _Dict = {}
 local _Key = {}
 local _List = {}
 local _Map = {}
+local _Atom = {}
 
+
+function _Atom:convert(value, validator, path)
+    if value == self.value then
+        return value
+    end
+    validator:add_error(path, self,
+        "Value must be ", self.value, ", but is ", value)
+    return self.value
+end
+
+local function Atom(props)
+    local obj = {value=props[1]}
+    setmetatable(obj, {__index=_Atom})
+    return obj
+end
 
 function _Number:convert(value, validator, path)
     if type(value) == 'number' then
@@ -204,6 +220,7 @@ local function validate(trafaret, value)
 end
 
 return {
+    Atom=Atom,
     Number=Number,
     String=String,
     Dict=Dict,
