@@ -96,17 +96,9 @@ describe("trafaret: dict", function()
         [T.Key{"xxx"}] = T.Number{},
         yyy = T.Number{},
     }
-    --[[
-    local extra = T.Dict {
-        [T.Key{"xxx"}] = T.Number{},
-        [T.Key{"yyy"}] = T.Number{},
-        allow_extra=true,
+    local default = T.Dict {
+        [T.Key{"xxx", default=1}] = T.Number{},
     }
-    local opt = T.Dict {
-        [T.Key{"xxx", optional=true}] = T.Number{},
-        [T.Key{"yyy"}] = T.Number{},
-    }
-    ]]--
     test("fixed ok", function()
         local res, val, _ = T.validate(fixed, {xxx=1, yyy=2})
         assert(res)
@@ -123,6 +115,21 @@ describe("trafaret: dict", function()
     test("fixed wrong type", function()
         local res, _, _ = T.validate(fixed, {xxx="1", yyy=2})
         assert(not res)
+    end)
+    test("default exits", function()
+        local res, val, _ = T.validate(default, {xxx=3})
+        assert(res)
+        assert.is.same({xxx=3}, val)
+    end)
+    test("default not exists", function()
+        local res, val, _ = T.validate(default, {})
+        assert(res)
+        assert.is.same({xxx=1}, val)
+    end)
+    test("default wrong type", function()
+        local res, val, _ = T.validate(default, {xxx="3"})
+        assert(not res)
+        assert.is.same({xxx=3}, val)
     end)
 end)
 
