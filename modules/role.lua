@@ -1,12 +1,7 @@
 local package = (...):match("(.-)[^/]+$")
 local func = require(package..'func')
-local version_util = require(package..'version_util')
 
 local _Role = {}
-
-function _Role:independent_scheduling(scheduler)
-    scheduler.independent_scheduling(self)
-end
 
 function _Role:output()
     local _ = self
@@ -66,23 +61,26 @@ local function from_fields(params)
     return params
 end
 
-local function from_state(state)
+local function from_state(params)
+    local state = params[1]
+    local driver_func = params.driver
+
     local actions = split_actions(state)
     local states = split_states(state)
     return func.map_pairs(function(role_name, runtime)
-        local sorted, versions, params = version_util.split_versions(runtime)
-        return from_fields({
+
+        local role = from_fields({
             name=role_name,
-
-            parameters=params,
-            versions=versions,
-            descending_versions=sorted,
-
+        })
+        local driver = driver_func(role, runtime)
+        driver.prepare { role,
+            runtime=runtime,
+            global_state=state,
             actions=actions[role_name] or {},
             parents=states[role_name] or {},
-            -- TODO(tailhook)
-            -- metrics=get_metrics(state, role_name),
-        })
+        }
+
+        return role
     end, state.runtime)
 end
 
