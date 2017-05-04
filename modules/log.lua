@@ -16,6 +16,17 @@ local function print(...)
     text = text .. "\n"
 end
 
+local function role_error(role_name, ...)
+    text = text .. "["..role_name.."]:ERROR: "
+    for i, v in pairs({...}) do
+        if i > 1 then
+            text = text .. " "
+        end
+        text = text .. tostring(v)
+    end
+    text = text .. "\n"
+end
+
 local function wrap_scheduler(real_scheduler)
     return function(state)
         local original_print = _G.print
@@ -46,4 +57,5 @@ end
 
 return {
     wrap_scheduler=wrap_scheduler,
+    role_error=role_error,
 }
