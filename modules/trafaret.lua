@@ -125,7 +125,7 @@ local function Dict(keys)
             allow_extra = not not value
         else
             if type(key) == 'string' then
-                key = Key { key }.with_trafaret(value)
+                key = Key { key }:with_trafaret(value)
             else
                 key = key:with_trafaret(value)
             end

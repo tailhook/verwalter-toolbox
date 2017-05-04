@@ -94,7 +94,7 @@ end)
 describe("trafaret: dict", function()
     local fixed = T.Dict {
         [T.Key{"xxx"}] = T.Number{},
-        [T.Key{"yyy"}] = T.Number{},
+        yyy = T.Number{},
     }
     --[[
     local extra = T.Dict {
