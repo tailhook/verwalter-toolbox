@@ -12,7 +12,7 @@ local ACTION = T.Or {
             role=T.String {},
             action=T.Atom { "create_group" },
             group_name=T.String {},
-            group_version=T.String {},
+            version=T.String {},
         },
     },
     T.Dict {
@@ -30,6 +30,7 @@ local ACTION = T.Or {
 
 local STATE = T.Dict {
     [T.Key { "groups", default={} }]=T.Map { T.String {}, T.Dict {
+        version=T.String {},
     }},
 }
 
@@ -98,7 +99,9 @@ function ACTIONS.create_group(role, action, timestamp)
             'already exists')
     else
         log.role_change(role.name, 'new group', button.group_name)
-        role.state.groups[button.group_name] = {}
+        role.state.groups[button.group_name] = {
+            version=button.version,
+        }
     end
 end
 
