@@ -52,10 +52,7 @@ describe("merge output", function()
                         versions={},
                     },
                 },
-                state={
-                    x={},
-                    y={},
-                },
+                state={ },
             })
     end)
 end)
