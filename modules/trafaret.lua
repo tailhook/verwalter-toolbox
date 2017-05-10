@@ -10,6 +10,7 @@ local _List = {}
 local _Map = {}
 local _Atom = {}
 local _Or = {}
+local _Bool = {}
 
 function _Atom:convert(value, validator, path)
     if value == self.value then
@@ -38,6 +39,21 @@ end
 local function Number(_)
     local obj = {}
     setmetatable(obj, {__index=_Number})
+    return obj
+end
+
+function _Bool:convert(value, validator, path)
+    if type(value) == 'boolean' then
+        return value
+    end
+    validator:add_error(path, self,
+        "Value is not a boolean, but", type(value))
+    return not not value
+end
+
+local function Bool(_)
+    local obj = {}
+    setmetatable(obj, {__index=_Bool})
     return obj
 end
 
@@ -257,5 +273,6 @@ return {
     List=List,
     Map=Map,
     Or=Or,
+    Bool=Bool,
     validate=validate,
 }
