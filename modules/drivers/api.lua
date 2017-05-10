@@ -19,7 +19,7 @@ local ACTION = T.Or {
         button=T.Dict {
             action=T.Atom { "add_daemon" },
             role=T.String {},
-            group_name=T.String {},
+            group=T.String {},
             new_name=T.String {},
             service=T.String {},
             servers=T.List { T.String {} },
@@ -27,11 +27,26 @@ local ACTION = T.Or {
             variables=T.Dict { allow_extra=true },
         },
     },
+    T.Dict {
+        button=T.Dict {
+            action=T.Atom { "enable_auto_update" },
+            role=T.String {},
+            group=T.String {},
+        },
+    },
+    T.Dict {
+        button=T.Dict {
+            action=T.Atom { "disable_auto_update" },
+            role=T.String {},
+            group=T.String {},
+        },
+    },
 }
 
 local STATE = T.Dict {
     [T.Key { "groups", default={} }]=T.Map { T.String {}, T.Dict {
         version=T.String {},
+        [T.Key { "auto_update", default=false }]=T.Bool {},
         [T.Key { "services" , default={} }]=T.Map { T.String {}, T.Dict {
             service=T.String {},
             servers=T.List { T.String {} },
@@ -114,10 +129,10 @@ end
 
 function ACTIONS.add_daemon(role, action, timestamp)
     local button = action.button
-    local group = role.state.groups[button.group_name]
+    local group = role.state.groups[button.group]
     if not group then
         log.role_error(role.name,
-            'group', button.group_name, 'does not exists')
+            'group', button.group, 'does not exists')
         return
     end
     local services = group.services
@@ -127,19 +142,19 @@ function ACTIONS.add_daemon(role, action, timestamp)
     end
     if services[button.new_name] ~= nil then
         log.role_error(role.name,
-            'group', button.group_name, 'already has service', button.new_name)
+            'group', button.group, 'already has service', button.new_name)
         return
     end
     local meta = role.versions[group.version]
     if meta == nil then
         log.role_error(role.name,
-            'group', button.group_name,
+            'group', button.group,
             "has no stable version, can't add a deamon in this case")
         return
     end
     if meta.daemons == nil or meta.daemons[button.service] == nil then
         log.role_error(role.name,
-            'group', button.group_name,
+            'group', button.group,
             "of current version has no daemon", button.service)
         return
     end
@@ -149,6 +164,28 @@ function ACTIONS.add_daemon(role, action, timestamp)
         number_per_server=button.number_per_server,
         variables=button.variables,
     }
+end
+
+function ACTIONS.enable_auto_update(role, action, timestamp)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        log.role_error(role.name,
+            'group', button.group, 'does not exists')
+        return
+    end
+    group.auto_update = true
+end
+
+function ACTIONS.disable_auto_update(role, action, timestamp)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        log.role_error(role.name,
+            'group', button.group, 'does not exists')
+        return
+    end
+    group.auto_update = false
 end
 
 local function execute_actions(role, actions)
