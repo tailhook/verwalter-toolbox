@@ -32,7 +32,7 @@ local ACTION = T.Or {
 local STATE = T.Dict {
     [T.Key { "groups", default={} }]=T.Map { T.String {}, T.Dict {
         version=T.String {},
-        services=T.Map { T.String {}, T.Dict {
+        [T.Key { "services" , default={} }]=T.Map { T.String {}, T.Dict {
             service=T.String {},
             servers=T.List { T.String {} },
             number_per_server=T.Number {},
