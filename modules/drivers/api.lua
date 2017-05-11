@@ -41,6 +41,14 @@ local ACTION = T.Or {
             group=T.String {},
         },
     },
+    T.Dict {
+        button=T.Dict {
+            action=T.Atom { "force_version" },
+            role=T.String {},
+            group=T.String {},
+            to_version=T.String {},
+        },
+    },
 }
 
 local STATE = T.Dict {
@@ -186,6 +194,19 @@ function ACTIONS.disable_auto_update(role, action, timestamp)
         return
     end
     group.auto_update = false
+end
+
+function ACTIONS.force_version(role, action, timestamp)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        log.role_error(role.name,
+            'group', button.group, 'does not exists')
+        return
+    end
+    -- TODO(tailhook) check that version exists
+    -- TODO(tailhook) reset all migration data
+    group.version = button.to_version
 end
 
 local function execute_actions(role, actions)
