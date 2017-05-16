@@ -117,6 +117,18 @@ describe("count_keys: count keys in a table", function()
     end)
 end)
 
+describe("keys: return array of the keys of the table", function()
+    -- list case is useless in practice, but we test
+    test("(list)", function()
+        assert.are.same({1, 2, 3},
+            func.keys({"x", "y", "z"}))
+    end)
+    test("(dict)", function()
+        assert.are.same({"a", "b", "c"},
+            func.sorted(func.keys({a="x", b="y", c="z"})))
+    end)
+end)
+
 describe("copy: a deep copy of table", function()
     test("(dict)", function()
         assert.are.same({"x", y={"z"}},

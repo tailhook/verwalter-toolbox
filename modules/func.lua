@@ -69,6 +69,14 @@ local function count_keys(dict)
     return res
 end
 
+local function keys(dict)
+    local res = {}
+    for key, _ in pairs(dict) do
+        table.insert(res, key)
+    end
+    return res
+end
+
 local function _copy(orig)
     local orig_type = type(orig)
     local copy
@@ -172,6 +180,7 @@ return {
     filter=filter,
     filter_pairs=filter_pairs,
     count_keys=count_keys,
+    keys=keys,
     copy=_copy,
     deepcopy=deepcopy,
     contains=contains,
