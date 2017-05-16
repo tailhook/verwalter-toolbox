@@ -4,11 +4,21 @@ local func = require(package..'func')
 local _Role = {}
 
 function _Role:output()
+    local images = {}
+    for _, ver in pairs(self.alive_versions or {}) do
+        for _, daemon in pairs((self.versions[ver] or {daemons={}}).daemons) do
+            images[daemon.image] = true
+        end
+        for _, cmd in pairs((self.versions[ver] or {commands={}}).commands) do
+            images[cmd.image] = true
+        end
+    end
     return {
         state=self.state,
         role={
             frontend={kind='api'},
-            versions=self.descending_versions,
+            versions=self.alive_versions or self.descending_versions,
+            images=func.keys(images),
         },
         nodes={},
         metrics={},

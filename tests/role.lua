@@ -46,10 +46,12 @@ describe("merge output", function()
                     x={
                         frontend={kind="api"},
                         versions={},
+                        images={},
                     },
                     y={
                         frontend={kind="api"},
                         versions={},
+                        images={},
                     },
                 },
                 state={ },

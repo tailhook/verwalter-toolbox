@@ -1,10 +1,13 @@
 local package = (...):match("(.-)[^/]+$")
 local super = package:match("(.-)[^/]+/$")
 local version_util = require(super..'version_util')
+local version = require(super..'version')
 local T = require(super..'trafaret')
 local log = require(super..'log')
 local func = require(super..'func')
 local ACTIONS = {}
+local LAST_DEPLOYED_LIFETIME = 86400
+local LAST_UPLOADED_LIFETIME = 86400
 
 local ACTION = T.Or {
     T.Dict {
@@ -55,6 +58,8 @@ local STATE = T.Dict {
     [T.Key { "groups", default={} }]=T.Map { T.String {}, T.Dict {
         version=T.String {},
         [T.Key { "auto_update", default=false }]=T.Bool {},
+        [T.Key { "last_deployed", default={} }]=
+            T.Map { T.String {}, T.Number {} },
         [T.Key { "services" , default={} }]=T.Map { T.String {}, T.Dict {
             service=T.String {},
             servers=T.List { T.String {} },
@@ -67,7 +72,7 @@ local STATE = T.Dict {
 local function check_actions(role, actions)
     local invalid_actions = {}
     local valid_actions = {}
-    for ts, action in pairs(actions) do
+    for _, action in pairs(actions) do
         local status, val, err = T.validate(ACTION, action)
         if status then
             log.role_debug(role.name, "action", val.button.action, "is valid")
@@ -87,10 +92,17 @@ local function merge_states(role, parents)
         local status, val, err = T.validate(STATE, parent.state)
         if status then
             for group_name, group in pairs(val.groups) do
-                if groups[group_name] ~= nil then
-                    -- TODO(tailhook) merge somehow
+                local cur = groups[group_name]
+                if cur ~= nil then
+                    -- TODO(tailhook) merge other things (version?)
+                    for ver, timestamp in pairs(groups.last_deployed) do
+                        local old_ts = cur.last_deployed[ver]
+                        if old_ts == nil or old_ts < timestamp then
+                            cur.last_deployed[old_ts] = timestamp
+                        end
+                    end
                 else
-                    groups[group_name] = group
+                    groups[group_name] = func.deepcopy(group)
                 end
             end
         else
@@ -122,7 +134,7 @@ local function merge_states(role, parents)
     return state
 end
 
-function ACTIONS.create_group(role, action, timestamp)
+function ACTIONS.create_group(role, action, _, _)
     local button = action.button
     if role.state.groups[button.group_name] then
         log.role_error(role.name, 'group', button.group_name,
@@ -135,7 +147,7 @@ function ACTIONS.create_group(role, action, timestamp)
     end
 end
 
-function ACTIONS.add_daemon(role, action, timestamp)
+function ACTIONS.add_daemon(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
@@ -174,7 +186,7 @@ function ACTIONS.add_daemon(role, action, timestamp)
     }
 end
 
-function ACTIONS.enable_auto_update(role, action, timestamp)
+function ACTIONS.enable_auto_update(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
@@ -185,7 +197,7 @@ function ACTIONS.enable_auto_update(role, action, timestamp)
     group.auto_update = true
 end
 
-function ACTIONS.disable_auto_update(role, action, timestamp)
+function ACTIONS.disable_auto_update(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
@@ -196,7 +208,7 @@ function ACTIONS.disable_auto_update(role, action, timestamp)
     group.auto_update = false
 end
 
-function ACTIONS.force_version(role, action, timestamp)
+function ACTIONS.force_version(role, action, _, now)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
@@ -204,25 +216,28 @@ function ACTIONS.force_version(role, action, timestamp)
             'group', button.group, 'does not exists')
         return
     end
+    if group.version and group.version ~= button.to_version then
+        group.last_deployed[group.version] = now
+    end
     -- TODO(tailhook) check that version exists
     -- TODO(tailhook) reset all migration data
     group.version = button.to_version
 end
 
-local function execute_actions(role, actions)
+local function execute_actions(role, actions, now)
     for timestamp, a in pairs(actions) do
         local aname = a.button.action
         log.role_debug(role.name, 'action', aname)
-        local func = ACTIONS[aname]
-        if func ~= nil then
+        local fun = ACTIONS[aname]
+        if fun ~= nil then
             -- TODO(tailhook) maybe use xpcall ?
-            func(role, a, timestamp)
+            fun(role, a, timestamp, now)
         else
             log.role_error(role.name, 'action', aname, 'is unknown. Skipped.')
         end
     end
 
-    local status, state, err = T.validate(STATE, role.state)
+    local status, _, err = T.validate(STATE, role.state)
     if not status then
         for _, e in ipairs(err) do
             log.role_error(role.name,
@@ -231,7 +246,7 @@ local function execute_actions(role, actions)
     end
 end
 
-local function auto_update_versions(role)
+local function auto_update_versions(role, now)
     for gname, group in pairs(role.state.groups) do
         -- TODO(tailhook) execute migrations
         if group.auto_update then
@@ -240,12 +255,71 @@ local function auto_update_versions(role)
                 log.role_change(role.name,
                     "Group", gname, "automatic update:",
                     group.version, "-> ", nver)
+                group.last_deployed[group.version] = now
                 group.version = nver
             end
         end
     end
 
-    local status, state, err = T.validate(STATE, role.state)
+    local status, _, err = T.validate(STATE, role.state)
+    if not status then
+        for _, e in ipairs(err) do
+            log.role_error(role.name,
+                'state is invalid after executing updates:', e)
+        end
+    end
+end
+
+local function cleanup(role, now)
+    local alive_versions = {}
+    for i=1,2 do
+        local v = role.descending_versions[i]
+        if v ~= nil then
+            alive_versions[v] = true
+        end
+    end
+
+    local deploy_cutoff = now - LAST_DEPLOYED_LIFETIME
+    for _, group in pairs(role.state.groups) do
+
+        alive_versions[group.version] = true
+
+        local to_remove = {}
+        local last_ver = nil
+        local last_ts = nil
+        for ver, timestamp in pairs(group.last_deployed or {}) do
+            if last_ver == nil or last_ts < timestamp then
+                last_ver = ver
+                last_ts = timestamp
+            end
+            if timestamp < deploy_cutoff then
+                table.insert(to_remove, ver)
+            else
+                alive_versions[ver] = true
+            end
+        end
+        for _, v in pairs(to_remove) do
+            if v ~= last_ver then
+                group.last_deployed[v] = nil
+            end
+        end
+        if last_ver then
+            alive_versions[last_ver] = true
+        end
+    end
+
+    local upload_cutoff = now - LAST_UPLOADED_LIFETIME
+    for ver, info in pairs(role.versions) do
+        if tonumber(info.timestamp) * 1000 >= upload_cutoff then
+            alive_versions[ver] = true
+        end
+    end
+
+    role.alive_versions = func.keys(alive_versions)
+    table.sort(role.alive_versions,
+               function(a, b) return version.compare(b, a) end)
+
+    local status, _, err = T.validate(STATE, role.state)
     if not status then
         for _, e in ipairs(err) do
             log.role_error(role.name,
@@ -272,7 +346,8 @@ local function prepare(params)
     role.state = state
 
     execute_actions(role, role.actions)
-    auto_update_versions(role)
+    auto_update_versions(role, global_state.now)
+    cleanup(role, global_state.now)
 end
 
 return {
