@@ -231,6 +231,29 @@ local function execute_actions(role, actions)
     end
 end
 
+local function auto_update_versions(role)
+    for gname, group in pairs(role.state.groups) do
+        -- TODO(tailhook) execute migrations
+        if group.auto_update then
+            local nver = role.descending_versions[1]
+            if group.version ~= nver then
+                log.role_change(role.name,
+                    "Group", gname, "automatic update:",
+                    group.version, "-> ", nver)
+                group.version = nver
+            end
+        end
+    end
+
+    local status, state, err = T.validate(STATE, role.state)
+    if not status then
+        for _, e in ipairs(err) do
+            log.role_error(role.name,
+                'state is invalid after executing updates:', e)
+        end
+    end
+end
+
 local function prepare(params)
     local role = params[1]
     local global_state = params.global_state
@@ -249,6 +272,7 @@ local function prepare(params)
     role.state = state
 
     execute_actions(role, role.actions)
+    auto_update_versions(role)
 end
 
 return {
