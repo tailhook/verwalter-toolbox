@@ -62,7 +62,8 @@ commands:
     container: check
     run: |
       set -ex
-      luacheck modules/*.lua tests/*.lua --exclude-files modules/json.lua
+      luacheck modules/*.lua modules/*/*.lua tests/*.lua \
+        --exclude-files modules/json.lua
 
   test-coverage: !Command
     container: check
