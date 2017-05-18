@@ -112,10 +112,12 @@ function _Dict:convert(value, validator, path)
     for key, item in pairs(value) do
         local keypath = path..'.'..key
         local keyobj = self.all_keys[key]
-        if not keyobj and not self.allow_extra then
+        if keyobj then
+            result[key] = keyobj.trafaret:convert(item, validator, keypath)
+        elseif not self.allow_extra then
             validator:add_error(keypath, self, "Unexpected key")
         else
-            result[key] = keyobj.trafaret:convert(item, validator, keypath)
+            result[key] = item
         end
     end
     for _, key in pairs(self.required_keys) do

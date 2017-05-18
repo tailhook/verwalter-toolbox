@@ -128,6 +128,7 @@ describe("trafaret: dict", function()
         [T.Key{"xxx"}] = T.Number{},
         yyy = T.Number{},
     }
+    local extra = T.Dict {allow_extra=true}
     local default = T.Dict {
         [T.Key{"xxx", default=1}] = T.Number{},
     }
@@ -162,6 +163,11 @@ describe("trafaret: dict", function()
         local res, val, _ = T.validate(default, {xxx="3"})
         assert(not res)
         assert.is.same({xxx=3}, val)
+    end)
+    test("allow_extra", function()
+        local res, val, _ = T.validate(extra, {xxx="1", yyy=2})
+        assert(res)
+        assert.is.same({xxx="1", yyy=2}, val)
     end)
 end)
 
