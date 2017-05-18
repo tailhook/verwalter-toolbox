@@ -52,6 +52,13 @@ local ACTION = T.Or {
             to_version=T.String {},
         },
     },
+    T.Dict {
+        button=T.Dict {
+            action=T.Atom { "delete_group" },
+            role=T.String {},
+            group=T.String {},
+        },
+    },
 }
 
 local STATE = T.Dict {
@@ -206,6 +213,17 @@ function ACTIONS.disable_auto_update(role, action, _, _)
         return
     end
     group.auto_update = false
+end
+
+function ACTIONS.delete_group(role, action, _, _)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        log.role_error(role.name,
+            'group', button.group, 'does not exists')
+        return
+    end
+    role.state.groups[button.group] = nil
 end
 
 function ACTIONS.force_version(role, action, _, now)
