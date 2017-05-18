@@ -27,7 +27,7 @@ local ACTION = T.Or {
             service=T.String {},
             servers=T.List { T.String {} },
             number_per_server=T.Number {},
-            variables=T.Dict { allow_extra=true },
+            variables=T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
         },
     },
     T.Dict {
@@ -64,7 +64,7 @@ local STATE = T.Dict {
             service=T.String {},
             servers=T.List { T.String {} },
             number_per_server=T.Number {},
-            variables=T.Map { T.String {}, T.String },
+            variables=T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
         }},
     }},
 }
