@@ -59,6 +59,24 @@ local ACTION = T.Or {
             group=T.String {},
         },
     },
+    T.Dict {
+        button=T.Dict {
+            action=T.Atom { "set_number_per_server" },
+            role=T.String {},
+            group=T.String {},
+            service=T.String {},
+            number_per_server=T.Number {},
+        },
+    },
+    T.Dict {
+        button=T.Dict {
+            action=T.Atom { "set_servers" },
+            role=T.String {},
+            group=T.String {},
+            service=T.String {},
+            servers=T.List { T.String {} },
+        },
+    },
 }
 
 local STATE = T.Dict {
@@ -240,6 +258,42 @@ function ACTIONS.force_version(role, action, _, now)
     -- TODO(tailhook) check that version exists
     -- TODO(tailhook) reset all migration data
     group.version = button.to_version
+end
+
+function ACTIONS.set_servers(role, action, _, _)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        log.role_error(role.name,
+            'group', button.group, 'does not exists')
+        return
+    end
+    local svc = group.services[button.service]
+    if not svc then
+        log.role_error(role.name,
+            'group', button.group, 'service',
+            button.service, 'does not exists')
+        return
+    end
+    svc.servers = action.servers
+end
+
+function ACTIONS.set_number_per_server(role, action, _, _)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        log.role_error(role.name,
+            'group', button.group, 'does not exists')
+        return
+    end
+    local svc = group.services[button.service]
+    if not svc then
+        log.role_error(role.name,
+            'group', button.group, 'service',
+            button.service, 'does not exists')
+        return
+    end
+    svc.number_per_server = action.number_per_server
 end
 
 local function execute_actions(role, actions, now)
