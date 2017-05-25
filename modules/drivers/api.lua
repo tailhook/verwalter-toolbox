@@ -275,7 +275,7 @@ function ACTIONS.set_servers(role, action, _, _)
             button.service, 'does not exists')
         return
     end
-    svc.servers = action.servers
+    svc.servers = button.servers
 end
 
 function ACTIONS.set_number_per_server(role, action, _, _)
@@ -293,7 +293,7 @@ function ACTIONS.set_number_per_server(role, action, _, _)
             button.service, 'does not exists')
         return
     end
-    svc.number_per_server = action.number_per_server
+    svc.number_per_server = button.number_per_server
 end
 
 local function execute_actions(role, actions, now)
