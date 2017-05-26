@@ -9,17 +9,16 @@ local ACTIONS = {}
 local LAST_DEPLOYED_LIFETIME = 86400
 local LAST_UPLOADED_LIFETIME = 86400
 
-local ACTION = T.Or {
-    T.Dict {
-        button=T.Dict {
+local ACTION = T.Dict {
+    button=T.Choice {
+        "action",
+        create_group=T.Dict {
             action=T.Atom { "create_group" },
             role=T.String {},
             group_name=T.String {},
             version=T.String {},
         },
-    },
-    T.Dict {
-        button=T.Dict {
+        add_daemon=T.Dict {
             action=T.Atom { "add_daemon" },
             role=T.String {},
             group=T.String {},
@@ -27,49 +26,38 @@ local ACTION = T.Or {
             service=T.String {},
             servers=T.List { T.String {} },
             number_per_server=T.Number {},
-            variables=T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
+            variables=T.Map { T.String {},
+                              T.Or { T.String {}, T.Number {} } },
         },
-    },
-    T.Dict {
-        button=T.Dict {
+        enable_auto_update=T.Dict {
             action=T.Atom { "enable_auto_update" },
             role=T.String {},
             group=T.String {},
         },
-    },
-    T.Dict {
-        button=T.Dict {
+        disable_auto_update=T.Dict {
             action=T.Atom { "disable_auto_update" },
             role=T.String {},
             group=T.String {},
         },
-    },
-    T.Dict {
-        button=T.Dict {
+        force_version=T.Dict {
             action=T.Atom { "force_version" },
             role=T.String {},
             group=T.String {},
             to_version=T.String {},
         },
-    },
-    T.Dict {
-        button=T.Dict {
+        delete_group=T.Dict {
             action=T.Atom { "delete_group" },
             role=T.String {},
             group=T.String {},
         },
-    },
-    T.Dict {
-        button=T.Dict {
+        set_number_per_server=T.Dict {
             action=T.Atom { "set_number_per_server" },
             role=T.String {},
             group=T.String {},
             service=T.String {},
             number_per_server=T.Number {},
         },
-    },
-    T.Dict {
-        button=T.Dict {
+        set_servers=T.Dict {
             action=T.Atom { "set_servers" },
             role=T.String {},
             group=T.String {},
