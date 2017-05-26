@@ -11,13 +11,14 @@ local _Map = {}
 local _Atom = {}
 local _Or = {}
 local _Bool = {}
+local _Choice = {}
 
 function _Atom:convert(value, validator, path)
     if value == self.value then
         return value
     end
     validator:add_error(path, self,
-        "Value must be ", self.value, ", but is ", value)
+        "Value must be", self.value, ", but is", value)
     return self.value
 end
 
@@ -250,6 +251,31 @@ local function Or(params)
     return obj
 end
 
+function _Choice:convert(value, validator, path)
+    local choice_value = value[self.key]
+    if choice_value == nil then
+        validator:add_error(path, self,
+            "Dict must contain", self.key)
+        return value
+    end
+    local cur_t = self.options[choice_value]
+    if cur_t == nil then
+        validator:add_error(path, self,
+            "Key", self.key, "must be one of",
+            table.concat(func.keys(self.options), ", "))
+        return value
+    end
+    return cur_t:convert(value, validator, path.."<choice "..choice_value..">")
+end
+
+local function Choice(params)
+    local key = params[1]
+    params[1] = nil
+    local obj = {key=key, options=params}
+    setmetatable(obj, {__index=_Choice})
+    return obj
+end
+
 local function validate(trafaret, value)
     local val = Validator()
     local status, cleaned = xpcall(
@@ -275,6 +301,7 @@ return {
     List=List,
     Map=Map,
     Or=Or,
+    Choice=Choice,
     Bool=Bool,
     validate=validate,
 }

@@ -231,3 +231,57 @@ describe("trafaret: or", function()
         })
     end)
 end)
+
+describe("trafaret: choice", function()
+    local choice = T.Choice {
+        "key",
+        str=T.Dict {
+            key=T.Atom {"str"},
+            value=T.String{},
+        },
+        num=T.Dict {
+            key=T.Atom {"num"},
+            value=T.Number{},
+        },
+    }
+    test("choice_ok_string", function()
+        local res, val, _ = T.validate(choice, {key="str", value="1"})
+        assert(res)
+        assert.is.same(val, {key="str", value="1"})
+    end)
+    test("choice_ok_number", function()
+        local res, val, _ = T.validate(choice, {key="num", value=1})
+        assert(res)
+        assert.is.same(val, {key="num", value=1})
+    end)
+    test("choice_err_string", function()
+        local res, _, err = T.validate(choice, {key="str", value=1})
+        assert(not res)
+        assert.is.same(err, {
+            "<choice str>.value: Value is not a string, but number",
+        })
+    end)
+    test("choice_err_number", function()
+        local res, _, err = T.validate(choice, {key="num", value="1"})
+        assert(not res)
+        assert.is.same(err, {
+            "<choice num>.value: Value is not a number, but string",
+        })
+    end)
+    test("wrong_choice", function()
+        local res, _, err = T.validate(choice, {key="nothing", value="1"})
+        assert(not res)
+        assert.is.same(#err, 1)
+        assert(
+            err[1] == ": Key key must be one of str, num" or
+            err[1] == ": Key key must be one of num, str")
+
+    end)
+    test("no_selector", function()
+        local res, _, err = T.validate(choice, {})
+        assert(not res)
+        assert.is.same(err, {
+            ": Dict must contain key",
+        })
+    end)
+end)
