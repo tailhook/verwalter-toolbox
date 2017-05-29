@@ -85,8 +85,9 @@ local STATE = T.Dict {
 local function check_actions(role, actions)
     local invalid_actions = {}
     local valid_actions = {}
-    for _, action in pairs(actions) do
+    for timestamp, action in pairs(actions) do
         local status, val, err = T.validate(ACTION, action)
+        val.timestamp = tonumber(timestamp)
         if status then
             log.role_debug(role.name, "action", val.button.action, "is valid")
             table.insert(valid_actions, val)
@@ -94,8 +95,15 @@ local function check_actions(role, actions)
             for _, e in ipairs(err) do
                 log.role_error(role.name, 'action', action, 'is invalid:', e)
             end
+            table.insert(invalid_actions, val)
         end
     end
+    table.sort(valid_actions, function(a, b)
+        return a.timestamp < b.timestamp
+    end)
+    table.sort(invalid_actions, function(a, b)
+        return a.timestamp < b.timestamp
+    end)
     return valid_actions, invalid_actions
 end
 
@@ -412,4 +420,5 @@ end
 
 return {
     prepare=prepare,
+    _check_actions=check_actions,
 }

@@ -6,6 +6,10 @@ local text = nil
 local changes = {}
 
 local function log(role_name, level_name, ...)
+    if text == nil then  -- in unit tests probably
+        print(role_name, level_name, ...)
+        return
+    end
     text = text .. "["..role_name.."]:"..level_name..": "
     for i, v in pairs({...}) do
         if i > 1 then
