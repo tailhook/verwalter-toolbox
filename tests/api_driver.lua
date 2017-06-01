@@ -7,7 +7,7 @@ local api = require("modules/drivers/api")
 
 describe("check_action", function()
     test("actions 1", function()
-        local valid, inv =api._check_actions(
+        local valid, inv = api._check_actions(
             {name="myrole"},
             {
                 ["1496068428001"]={button={
@@ -33,5 +33,29 @@ describe("check_action", function()
              button={action="something_bad", role="myrole",
                      group_name="gr2", version="v1.1.1"}},
         })
+    end)
+    test("merge_states", function()
+        local state = api._merge_states("r1", {
+            {state={groups={
+                g1={
+                    version='v7',
+                    last_deployed={v1=7, v2=3},
+                },
+            }}},
+            {state={groups={
+                g1={
+                    version='v7',
+                    last_deployed={v3=1000, v2=5},
+                },
+            }}},
+        })
+        assert.are.same({groups={
+            g1={
+                auto_update=false,
+                last_deployed={v1=7, v2=5, v3=1000},
+                services={},
+                version='v7',
+            },
+        }}, state)
     end)
 end)

@@ -113,13 +113,13 @@ local function merge_states(role, parents)
         local status, val, err = T.validate(STATE, parent.state)
         if status then
             for group_name, group in pairs(val.groups) do
-                local cur = groups[group_name]
-                if cur ~= nil then
+                local out = groups[group_name]
+                if out ~= nil then
                     -- TODO(tailhook) merge other things (version?)
-                    for ver, timestamp in pairs(groups.last_deployed) do
-                        local old_ts = cur.last_deployed[ver]
+                    for ver, timestamp in pairs(group.last_deployed) do
+                        local old_ts = out.last_deployed[ver]
                         if old_ts == nil or old_ts < timestamp then
-                            cur.last_deployed[old_ts] = timestamp
+                            out.last_deployed[ver] = timestamp
                         end
                     end
                 else
@@ -421,4 +421,5 @@ end
 return {
     prepare=prepare,
     _check_actions=check_actions,
+    _merge_states=merge_states,
 }
