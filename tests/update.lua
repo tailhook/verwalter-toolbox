@@ -73,4 +73,26 @@ describe("updates: stages", function()
             backward_time=7,
         }})
     end)
+    test("quick restart with test mode", function()
+        local ok, cfg, _ = update.validate_config({
+            yyy={kind="quick_restart", warmup_sec=5, test_mode_percent=1},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {
+            {name="test_mode",
+                processes={"yyy"},
+                forward_mode="manual",
+                forward_time=5,
+                backward_mode="time",
+                backward_time=5},
+            {name="quick_restart",
+                processes={"yyy"},
+                forward_mode="time",
+                forward_time=5,
+                backward_mode="time",
+                backward_time=5,
+            },
+        })
+    end)
 end)

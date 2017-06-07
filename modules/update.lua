@@ -65,11 +65,39 @@ function BUILD_PIPELINE.quick_restart(pipeline, daemon, cfg)
     })
 end
 
+local function update_test_mode(pipeline, daemon, cfg)
+    for _, s in pairs(pipeline) do
+        if s.name == 'test_mode' then
+            table.insert(s.processes, daemon)
+            -- predictable order, list is just few items, so is very quick
+            table.sort(s.processes)
+            if s.forward_time < cfg.warmup_sec then
+                s.forward_time = cfg.warmup_sec
+            end
+            if s.backward_time < cfg.warmup_sec then
+                s.backward_time = cfg.warmup_sec
+            end
+            return
+        end
+    end
+    table.insert(pipeline, 1, {
+        name="test_mode",
+        forward_mode="manual",
+        forward_time=cfg.warmup_sec,
+        backward_mode="time",
+        backward_time=cfg.warmup_sec,
+        processes={daemon},
+    })
+end
+
 local function derive_pipeline(config)
     local pipeline = {}
     for daemon, cfg in pairs(config) do
         if cfg.kind then
             BUILD_PIPELINE[cfg.kind](pipeline, daemon, cfg)
+            if cfg.test_mode_percent > 0 then
+                update_test_mode(pipeline, daemon, cfg)
+            end
         -- else
             -- TODO(tailhook) this is migration/onetime commands
         end
