@@ -149,7 +149,9 @@ local function Dict(keys)
                 key = key:with_trafaret(value)
             end
             all_keys[key.key] = key
-            table.insert(required_keys, key.key)
+            if not key.optional then
+                table.insert(required_keys, key.key)
+            end
         end
     end
     local obj = {

@@ -132,6 +132,10 @@ describe("trafaret: dict", function()
     local default = T.Dict {
         [T.Key{"xxx", default=1}] = T.Number{},
     }
+    local optional = T.Dict {
+        [T.Key{"xxx", optional=true}] = T.Number{},
+        yyy = T.Number{},
+    }
     test("fixed ok", function()
         local res, val, _ = T.validate(fixed, {xxx=1, yyy=2})
         assert(res)
@@ -168,6 +172,17 @@ describe("trafaret: dict", function()
         local res, val, _ = T.validate(extra, {xxx="1", yyy=2})
         assert(res)
         assert.is.same({xxx="1", yyy=2}, val)
+    end)
+    test("optional present", function()
+        local res, val, _ = T.validate(optional, {xxx=1, yyy=2})
+        assert(res)
+        assert.is.same(val, {yyy=2, xxx=1})
+    end)
+    test("optional absent", function()
+        local res, val, err = T.validate(optional, {yyy=2})
+        assert.is.same(err, nil)
+        assert(res)
+        assert.is.same(val, {yyy=2})
     end)
 end)
 
