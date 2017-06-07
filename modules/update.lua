@@ -1,5 +1,6 @@
 local package = (...):match("(.-)[^/]+$")
 local T = require(package..'trafaret')
+local BUILD_PIPELINE = {}
 
 local CONFIG = T.Map { T.String {}, T.Or {
     T.Dict {
@@ -36,37 +37,41 @@ local function validate_config(config)
     return T.validate(CONFIG, config)
 end
 
+function BUILD_PIPELINE.quick_restart(pipeline, daemon, cfg)
+    local insert_idx = 1
+    for idx, s in pairs(pipeline) do
+        if s.name == 'quick_restart' then
+            table.insert(s.processes, daemon)
+            -- predictable order, list is just few items, so is very quick
+            table.sort(s.processes)
+            if s.forward_time < cfg.warmup_sec then
+                s.forward_time = cfg.warmup_sec
+            end
+            if s.backward_time < cfg.warmup_sec then
+                s.backward_time = cfg.warmup_sec
+            end
+            return
+        elseif s.name == 'test_mode' then
+            insert_idx = idx+1
+        end
+    end
+    table.insert(pipeline, insert_idx, {
+        name="quick_restart",
+        forward_mode="time",
+        forward_time=cfg.warmup_sec,
+        backward_mode="time",
+        backward_time=cfg.warmup_sec,
+        processes={daemon},
+    })
+end
+
 local function derive_pipeline(config)
     local pipeline = {}
     for daemon, cfg in pairs(config) do
-        if cfg.kind == "quick_restart" then
-            local insert_idx = 1
-            local inserted = false
-            for idx, s in pairs(pipeline) do
-                if s.name == 'quick_restart' then
-                    table.insert(s.processes, daemon)
-                    if s.forward_time < cfg.warmup_sec then
-                        s.forward_time = cfg.warmup_sec
-                    end
-                    if s.backward_time < cfg.warmup_sec then
-                        s.backward_time = cfg.warmup_sec
-                    end
-                    inserted = true
-                    break
-                elseif s.name == 'test_mode' then
-                    insert_idx = idx+1
-                end
-            end
-            if not inserted then
-                table.insert(pipeline, insert_idx, {
-                    name="quick_restart",
-                    forward_mode="time",
-                    forward_time=cfg.warmup_sec,
-                    backward_mode="time",
-                    backward_time=cfg.warmup_sec,
-                    processes={daemon},
-                })
-            end
+        if cfg.kind then
+            BUILD_PIPELINE[cfg.kind](pipeline, daemon, cfg)
+        -- else
+            -- TODO(tailhook) this is migration/onetime commands
         end
     end
     local ok, result, err = T.validate(PIPELINE, pipeline)
