@@ -8,19 +8,22 @@ local update = require("modules/update")
 describe("updates: typical setup", function()
     local processes = {
         db_migrate={
-            run_before="test_mode",
+            run_before={"test_mode"},
         },
         celery={
-            kind="quick_restart",
+            restart="quick",
+            before={"test_mode"},
             warmup_sec=5,
         },
         slow_site={
-            kind="smooth_alternate_port",
+            restart="smooth",
+            smooth_mode="alternate_port",
             test_mode_percent=5,
             warmup_sec=15,
         },
         fast_site={
-            kind="smooth_same_port",
+            restart="smooth",
+            smooth_mode="same_port",
             test_mode_percent=5,
             warmup_sec=1,
         },
@@ -43,7 +46,7 @@ describe("updates: stages", function()
     end)
     test("quick restart", function()
         local ok, cfg, _ = update.validate_config({
-            x={kind="quick_restart", warmup_sec=5}
+            x={restart="quick", warmup_sec=5}
         })
         assert(ok)
         local stages = update.derive_pipeline(cfg)
@@ -59,8 +62,8 @@ describe("updates: stages", function()
 
     test("quick restart 2", function()
         local ok, cfg, _ = update.validate_config({
-            one={kind="quick_restart", warmup_sec=5},
-            two={kind="quick_restart", warmup_sec=7},
+            one={restart="quick", warmup_sec=5},
+            two={restart="quick", warmup_sec=7},
         })
         assert(ok)
         local stages = update.derive_pipeline(cfg)
@@ -75,7 +78,7 @@ describe("updates: stages", function()
     end)
     test("quick restart with test mode", function()
         local ok, cfg, _ = update.validate_config({
-            yyy={kind="quick_restart", warmup_sec=5, test_mode_percent=1},
+            yyy={restart="quick", warmup_sec=5, test_mode_percent=1},
         })
         assert(ok)
         local stages = update.derive_pipeline(cfg)
@@ -92,6 +95,78 @@ describe("updates: stages", function()
                 forward_time=5,
                 backward_mode="time",
                 backward_time=5,
+            },
+        })
+    end)
+
+    test("quick restart with test mode 2", function()
+        local ok, cfg, _ = update.validate_config({
+            yyy={restart="quick", warmup_sec=5, test_mode_percent=1},
+            zzz={restart="quick", warmup_sec=8, test_mode_percent=2},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {
+            {name="test_mode",
+                processes={"yyy", "zzz"},
+                forward_mode="manual",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8},
+            {name="quick_restart",
+                processes={"yyy", "zzz"},
+                forward_mode="time",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8,
+            },
+        })
+    end)
+
+    test("quick restart with test mode 1/2", function()
+        local ok, cfg, _ = update.validate_config({
+            yyy={restart="quick", warmup_sec=5 },
+            zzz={restart="quick", warmup_sec=8, test_mode_percent=2},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {
+            {name="test_mode",
+                processes={"zzz"},
+                forward_mode="manual",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8},
+            {name="quick_restart",
+                processes={"yyy", "zzz"},
+                forward_mode="time",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8,
+            },
+        })
+    end)
+
+    test("smooth restart", function()
+        local ok, cfg, _ = update.validate_config({
+            yyy={restart="smooth", warmup_sec=5 },
+            zzz={restart="smooth", warmup_sec=8, test_mode_percent=2},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {
+            {name="test_mode",
+                processes={"zzz"},
+                forward_mode="manual",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8},
+            {name="smooth_restart",
+                processes={"yyy", "zzz"},
+                forward_mode="smooth",
+                forward_time=80,
+                backward_mode="smooth",
+                backward_time=80,
             },
         })
     end)

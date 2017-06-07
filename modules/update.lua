@@ -1,24 +1,23 @@
 local package = (...):match("(.-)[^/]+$")
 local T = require(package..'trafaret')
-local BUILD_PIPELINE = {}
+
+local SMOOTH_STAGES = 10
 
 local CONFIG = T.Map { T.String {}, T.Or {
     T.Dict {
-        run_before=T.Or {
-            T.Atom { "test_mode" },
-        },
+        run_before=T.List { T.String {} },
         [T.Key { "ack", default=true }]=T.Number {},
     },
     T.Dict {
-        kind=T.Or {
-            T.Atom { "smooth_alternate_port" },
-            T.Atom { "smooth_same_port" },
+        restart=T.Or {
+            T.Atom { "smooth" },
+            T.Atom { "quick" },
             -- T.Atom { "temporary_shutdown" },
-            T.Atom { "quick_restart" },
         },
         [T.Key { "test_mode_percent", default=0 }]=T.Number {},
         [T.Key { "warmup_sec", default=1 }]=T.Number {},
-        -- [T.Key { "before", optional=true }]=T.String {},
+        [T.Key { "smooth_mode", optional=true }]=T.String {},
+        [T.Key { "before", optional=true }]=T.List { T.String {} },
         -- [T.Key { "after", optional=true }]=T.String {},
     },
 }}
@@ -38,7 +37,7 @@ local function validate_config(config)
     return T.validate(CONFIG, config)
 end
 
-function BUILD_PIPELINE.quick_restart(pipeline, daemon, cfg)
+local function add_quick_restart(pipeline, daemon, cfg)
     local insert_idx = 1
     for idx, s in pairs(pipeline) do
         if s.name == 'quick_restart' then
@@ -66,7 +65,7 @@ function BUILD_PIPELINE.quick_restart(pipeline, daemon, cfg)
     })
 end
 
-local function update_test_mode(pipeline, daemon, cfg)
+local function add_test_mode(pipeline, daemon, cfg)
     for _, s in pairs(pipeline) do
         if s.name == 'test_mode' then
             table.insert(s.processes, daemon)
@@ -91,13 +90,48 @@ local function update_test_mode(pipeline, daemon, cfg)
     })
 end
 
+local function add_smooth_restart(pipeline, daemon, cfg)
+    local insert_idx = 1
+    for idx, s in pairs(pipeline) do
+        if s.name == 'smooth_restart' then
+            table.insert(s.processes, daemon)
+            -- predictable order, list is just few items, so is very quick
+            table.sort(s.processes)
+            if s.forward_time < cfg.warmup_sec*SMOOTH_STAGES then
+                s.forward_time = cfg.warmup_sec*SMOOTH_STAGES
+            end
+            if s.backward_time < cfg.warmup_sec*SMOOTH_STAGES then
+                s.backward_time = cfg.warmup_sec*SMOOTH_STAGES
+            end
+            return
+        elseif s.name == 'test_mode' or s.name == 'quick_restart' then
+            if idx + 1 > insert_idx then
+                insert_idx = idx+1
+            end
+        end
+    end
+    table.insert(pipeline, insert_idx, {
+        name="smooth_restart",
+        forward_mode="smooth",
+        forward_time=cfg.warmup_sec*SMOOTH_STAGES,
+        backward_mode="smooth",
+        backward_time=cfg.warmup_sec*SMOOTH_STAGES,
+        processes={daemon},
+    })
+end
+
 local function derive_pipeline(config)
     local pipeline = {}
     for daemon, cfg in pairs(config) do
-        if cfg.kind then
-            BUILD_PIPELINE[cfg.kind](pipeline, daemon, cfg)
+        if cfg.restart == "quick" then
+            add_quick_restart(pipeline, daemon, cfg)
             if cfg.test_mode_percent > 0 then
-                update_test_mode(pipeline, daemon, cfg)
+                add_test_mode(pipeline, daemon, cfg)
+            end
+        elseif cfg.restart == "smooth" then
+            add_smooth_restart(pipeline, daemon, cfg)
+            if cfg.test_mode_percent > 0 then
+                add_test_mode(pipeline, daemon, cfg)
             end
         -- else
             -- TODO(tailhook) this is migration/onetime commands
