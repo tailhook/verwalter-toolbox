@@ -7,18 +7,19 @@ local CONFIG = T.Map { T.String {}, T.Or {
         run_before=T.Or {
             T.Atom { "test_mode" },
         },
+        [T.Key { "ack", default=true }]=T.Number {},
     },
     T.Dict {
         kind=T.Or {
             T.Atom { "smooth_alternate_port" },
             T.Atom { "smooth_same_port" },
-            T.Atom { "temporary_shutdown" },
-            T.Atom { "quick_restart_before_test" },
+            -- T.Atom { "temporary_shutdown" },
             T.Atom { "quick_restart" },
-            T.Atom { "quick_restart_after" },
         },
         [T.Key { "test_mode_percent", default=0 }]=T.Number {},
         [T.Key { "warmup_sec", default=1 }]=T.Number {},
+        -- [T.Key { "before", optional=true }]=T.String {},
+        -- [T.Key { "after", optional=true }]=T.String {},
     },
 }}
 
