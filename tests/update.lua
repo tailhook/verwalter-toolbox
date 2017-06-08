@@ -201,4 +201,27 @@ describe("updates: stages", function()
             },
         })
     end)
+    test("transient_test_mode", function()
+        local ok, cfg, _ = update.validate_config({
+            ccc={mode="run_with_ack", before={"test_mode"}},
+            ddd={restart="smooth", warmup_sec=8},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {
+            {name="cmd_ccc",
+                processes={"ccc"},
+                forward_mode="ack",
+                forward_time=0,
+                backward_mode="skip",
+                backward_time=0},
+            {name="smooth_restart",
+                processes={"ddd"},
+                forward_mode="smooth",
+                forward_time=80,
+                backward_mode="smooth",
+                backward_time=80,
+            },
+        })
+    end)
 end)

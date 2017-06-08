@@ -42,6 +42,24 @@ local function validate_config(config)
     return T.validate(CONFIG, config)
 end
 
+local function expand_before(before, ...)
+    if before == nil then
+        return {...}
+    end
+    local result = func.copy(before)
+    for _, item in pairs(before) do
+        -- adding implicit dependencies
+        if item == 'test_mode' then
+            table.insert(result, "quick_restart")
+            table.insert(result, "smooth_restart")
+        end
+    end
+    for _, item in pairs({...}) do
+        table.insert(result, item)
+    end
+    return result
+end
+
 local function add_quick_restart(stages, daemon, cfg)
     local stage = stages['quick_restart']
     if stage ~= nil then
@@ -62,7 +80,7 @@ local function add_quick_restart(stages, daemon, cfg)
             backward_mode="time",
             backward_time=cfg.warmup_sec,
             processes={daemon},
-            before=func.copy(cfg.before) or {},
+            before=expand_before(cfg.before, "smooth_restart"),
             after=func.copy(cfg.after) or {},
         }
     end
@@ -81,10 +99,6 @@ local function add_test_mode(stages, daemon, cfg)
             stage.backward_time = cfg.warmup_sec
         end
     else
-        local before = func.copy(cfg.before) or {}
-        -- implicit before
-        table.insert(before, "quick_restart")
-        table.insert(before, "smooth_restart")
         stages['test_mode'] = {
             name="test_mode",
             forward_mode="manual",
@@ -92,7 +106,9 @@ local function add_test_mode(stages, daemon, cfg)
             backward_mode="time",
             backward_time=cfg.warmup_sec,
             processes={daemon},
-            before=before,
+            before=expand_before(cfg.before,
+                        -- implicit before
+                        "quick_restart", "smooth_restart"),
             after=func.copy(cfg.after) or {},
         }
     end
@@ -111,8 +127,6 @@ local function add_smooth_restart(stages, daemon, cfg)
             stage.backward_time = cfg.warmup_sec*SMOOTH_STAGES
         end
     else
-        local after = func.copy(cfg.after) or {}
-        table.insert(after, {"quick_restart"}) -- implicit after
         stages['smooth_restart'] = {
             name="smooth_restart",
             forward_mode="smooth",
@@ -120,8 +134,8 @@ local function add_smooth_restart(stages, daemon, cfg)
             backward_mode="smooth",
             backward_time=cfg.warmup_sec*SMOOTH_STAGES,
             processes={daemon},
-            after=after,
-            before=func.copy(cfg.before) or {},
+            after=func.copy(cfg.after) or {},
+            before=expand_before(cfg.before),
         }
     end
 end
@@ -137,7 +151,7 @@ local function add_command(stages, cname, cfg)
             backward_time=cfg.duration,
             processes={cname},
             after=func.copy(cfg.after) or {},
-            before=func.copy(cfg.before) or {},
+            before=expand_before(cfg.before),
         }
     else
         print("Error, can't classify command", cname)
