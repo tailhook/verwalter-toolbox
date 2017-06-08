@@ -6,9 +6,10 @@ local SMOOTH_STAGES = 10
 
 local CONFIG = T.Map { T.String {}, T.Or {
     T.Dict {
-        run_before=T.List { T.String {} },
-        [T.Key { "ack", default=true }]=T.Number {},
+        [T.Key { "mode" }]=T.Or { T.Atom { "run_with_ack" } },
         [T.Key { "duration", default=0 }]=T.Number {},
+        [T.Key { "before", optional=true }]=T.List { T.String {} },
+        [T.Key { "after", optional=true }]=T.List { T.String {} },
     },
     T.Dict {
         restart=T.Or {
@@ -27,10 +28,12 @@ local CONFIG = T.Map { T.String {}, T.Or {
 local PIPELINE = T.List { T.Dict {
     name=T.String {},
     [T.Key { "forward_mode" }]=
-        T.Or { T.Atom { "manual" }, T.Atom { "time" }, T.Atom { "smooth" } },
+        T.Or { T.Atom { "manual" }, T.Atom { "time" }, T.Atom { "smooth" },
+               T.Atom { "ack" }},
     [T.Key { "forward_time", default=5 }]=T.Number {},
     [T.Key { "backward_mode" }]=
-        T.Or { T.Atom { "manual" }, T.Atom { "time" }, T.Atom { "smooth" } },
+        T.Or { T.Atom { "manual" }, T.Atom { "time" }, T.Atom { "smooth" },
+               T.Atom { "skip" } },
     [T.Key { "backward_time", default=5 }]=T.Number {},
     [T.Key { "processes", default={} }]=T.List { T.String {} },
 }}
@@ -59,6 +62,8 @@ local function add_quick_restart(stages, daemon, cfg)
             backward_mode="time",
             backward_time=cfg.warmup_sec,
             processes={daemon},
+            before=func.copy(cfg.before) or {},
+            after=func.copy(cfg.after) or {},
         }
     end
 end
@@ -76,6 +81,10 @@ local function add_test_mode(stages, daemon, cfg)
             stage.backward_time = cfg.warmup_sec
         end
     else
+        local before = func.copy(cfg.before) or {}
+        -- implicit before
+        table.insert(before, "quick_restart")
+        table.insert(before, "smooth_restart")
         stages['test_mode'] = {
             name="test_mode",
             forward_mode="manual",
@@ -83,7 +92,8 @@ local function add_test_mode(stages, daemon, cfg)
             backward_mode="time",
             backward_time=cfg.warmup_sec,
             processes={daemon},
-            before={"quick_restart", "smooth_restart"}, -- implicit before
+            before=before,
+            after=func.copy(cfg.after) or {},
         }
     end
 end
@@ -101,6 +111,8 @@ local function add_smooth_restart(stages, daemon, cfg)
             stage.backward_time = cfg.warmup_sec*SMOOTH_STAGES
         end
     else
+        local after = func.copy(cfg.after) or {}
+        table.insert(after, {"quick_restart"}) -- implicit after
         stages['smooth_restart'] = {
             name="smooth_restart",
             forward_mode="smooth",
@@ -108,12 +120,28 @@ local function add_smooth_restart(stages, daemon, cfg)
             backward_mode="smooth",
             backward_time=cfg.warmup_sec*SMOOTH_STAGES,
             processes={daemon},
-            after={"quick_restart"}, -- implicit after
+            after=after,
+            before=func.copy(cfg.before) or {},
         }
     end
 end
 
-local function add_command(_, _, _)
+local function add_command(stages, cname, cfg)
+    if cfg.mode == 'run_with_ack' then
+        local name = 'cmd_'..cname
+        stages[name] = {
+            name=name,
+            forward_mode="ack",
+            forward_time=cfg.duration,
+            backward_mode="skip",
+            backward_time=cfg.duration,
+            processes={cname},
+            after=func.copy(cfg.after) or {},
+            before=func.copy(cfg.before) or {},
+        }
+    else
+        print("Error, can't classify command", cname)
+    end
 end
 
 local function propagate_constraints(stages)
@@ -123,9 +151,6 @@ local function propagate_constraints(stages)
             for _, cname in pairs(before) do
                 local cstage = stages[cname]
                 if cstage ~= nil then
-                    if cstage.after == nil then
-                        cstage.after = {}
-                    end
                     -- duplicates are ok
                     table.insert(cstage.after, stage.name)
                 end
@@ -137,9 +162,6 @@ local function propagate_constraints(stages)
             for _, cname in pairs(after) do
                 local cstage = stages[cname]
                 if cstage ~= nil then
-                    if cstage.before == nil then
-                        cstage.before = {}
-                    end
                     -- duplicates are ok
                     table.insert(cstage.before, stage.name)
                 end
@@ -194,8 +216,8 @@ local function derive_pipeline(config)
             if cfg.test_mode_percent > 0 then
                 add_test_mode(stages, daemon, cfg)
             end
-        elseif cfg.run_before ~= nil then
-            add_command(cfg)
+        elseif cfg.mode ~= nil then
+            add_command(stages, daemon, cfg)
         else
             print("Error, can't classify daemon", daemon)
         end

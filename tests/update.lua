@@ -8,7 +8,8 @@ local update = require("modules/update")
 describe("updates: typical setup", function()
     local processes = {
         db_migrate={
-            run_before={"test_mode"},
+            mode="run_with_ack",
+            before={"test_mode"},
         },
         celery={
             restart="quick",
@@ -163,6 +164,36 @@ describe("updates: stages", function()
                 backward_time=8},
             {name="smooth_restart",
                 processes={"yyy", "zzz"},
+                forward_mode="smooth",
+                forward_time=80,
+                backward_mode="smooth",
+                backward_time=80,
+            },
+        })
+    end)
+
+    test("command", function()
+        local ok, cfg, _ = update.validate_config({
+            ccc={mode="run_with_ack", before={"test_mode"}},
+            ddd={restart="smooth", warmup_sec=8, test_mode_percent=2},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {
+            {name="cmd_ccc",
+                processes={"ccc"},
+                forward_mode="ack",
+                forward_time=0,
+                backward_mode="skip",
+                backward_time=0},
+            {name="test_mode",
+                processes={"ddd"},
+                forward_mode="manual",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8},
+            {name="smooth_restart",
+                processes={"ddd"},
                 forward_mode="smooth",
                 forward_time=80,
                 backward_mode="smooth",
