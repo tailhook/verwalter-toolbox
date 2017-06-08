@@ -235,7 +235,10 @@ local function derive_pipeline(config)
         else
             print("Error, can't classify daemon", daemon,
                 ". Treating it as a restart='quick'")
-            add_quick_restart(stages, daemon, cfg)
+            add_quick_restart(stages, daemon, {
+                restart="quick",
+                warmup_sec=5,
+            })
         end
     end
     propagate_constraints(stages)
