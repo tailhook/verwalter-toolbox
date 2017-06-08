@@ -25,7 +25,7 @@ function _Role:output()
             versions=versions,
             version_info=version_info,
             images=func.keys(images),
-            group_pipelines=func.count_keys(self.update_pipelines) > 0
+            group_pipelines=func.count_keys(self.update_pipelines or {}) > 0
                 and self.update_pipelines or nil,
         },
         nodes={},
