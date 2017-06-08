@@ -5,6 +5,7 @@ local version = require(super..'version')
 local T = require(super..'trafaret')
 local log = require(super..'log')
 local func = require(super..'func')
+local update = require(super..'update')
 local ACTIONS = {}
 local LAST_DEPLOYED_LIFETIME = 86400
 local LAST_UPLOADED_LIFETIME = 86400
@@ -396,6 +397,26 @@ local function cleanup(role, now)
     end
 end
 
+local function calculate_pipelines(role)
+    local update_pipelines = {}
+    for group_name, group in pairs(role.state.groups or {}) do
+        local services = {}
+        for service_name, service in pairs(group.services) do
+            local ver = role.versions[group.version]
+            local info = func.copy(ver.daemons[service.service].metadata) or {}
+            services[service_name] = info
+        end
+        local pipeline = update.derive_pipeline(services)
+        if pipeline then
+            update_pipelines[group_name] = pipeline
+        else
+            log.role_log(role.name, "group", group_name,
+                "don't have a valid update pipeline")
+        end
+    end
+    return update_pipelines
+end
+
 local function prepare(params)
     local role = params[1]
     local global_state = params.global_state
@@ -413,6 +434,7 @@ local function prepare(params)
     local state = merge_states(role, params.parents)
     role.state = state
 
+    role.update_pipelines = calculate_pipelines(role)
     execute_actions(role, role.actions)
     auto_update_versions(role, global_state.now)
     cleanup(role, global_state.now)

@@ -233,7 +233,9 @@ local function derive_pipeline(config)
         elseif cfg.mode ~= nil then
             add_command(stages, daemon, cfg)
         else
-            print("Error, can't classify daemon", daemon)
+            print("Error, can't classify daemon", daemon,
+                ". Treating it as a restart='quick'")
+            add_quick_restart(stages, daemon, cfg)
         end
     end
     propagate_constraints(stages)
