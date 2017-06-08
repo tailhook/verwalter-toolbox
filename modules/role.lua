@@ -13,11 +13,17 @@ function _Role:output()
             images[cmd.image] = true
         end
     end
+    local versions = self.alive_versions or self.descending_versions
+    local version_info = {}
+    for _, ver in pairs(versions) do
+        version_info[ver] = self.versions[ver] or {daemons={}}
+    end
     return {
         state=self.state,
         role={
             frontend={kind='api'},
-            versions=self.alive_versions or self.descending_versions,
+            versions=versions,
+            version_info=version_info,
             images=func.keys(images),
         },
         nodes={},
