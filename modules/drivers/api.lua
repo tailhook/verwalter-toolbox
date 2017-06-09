@@ -436,7 +436,7 @@ local function prepare(params)
     role.state = state
 
     role.update_pipelines = calculate_pipelines(role)
-    execute_actions(role, role.actions)
+    execute_actions(role, role.actions, global_state.now)
     auto_update_versions(role, global_state.now)
     cleanup(role, global_state.now)
 end
