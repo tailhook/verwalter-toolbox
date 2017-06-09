@@ -222,12 +222,12 @@ local function derive_pipeline(config)
     for daemon, cfg in pairs(config) do
         if cfg.restart == "quick" then
             add_quick_restart(stages, daemon, cfg)
-            if cfg.test_mode_percent > 0 then
+            if cfg.test_mode_percent and cfg.test_mode_percent > 0 then
                 add_test_mode(stages, daemon, cfg)
             end
         elseif cfg.restart == "smooth" then
             add_smooth_restart(stages, daemon, cfg)
-            if cfg.test_mode_percent > 0 then
+            if cfg.test_mode_percent and cfg.test_mode_percent > 0 then
                 add_test_mode(stages, daemon, cfg)
             end
         elseif cfg.mode ~= nil then
