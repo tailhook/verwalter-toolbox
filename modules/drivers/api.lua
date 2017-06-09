@@ -403,7 +403,8 @@ local function calculate_pipelines(role)
         local services = {}
         for service_name, service in pairs(group.services) do
             local ver = role.versions[group.version]
-            local info = func.copy(ver.daemons[service.service].metadata) or {}
+            local vinfo = ver.daemons[service.service]
+            local info = func.copy(vinfo and vinfo.update) or {}
             services[service_name] = info
         end
         local pipeline = update.derive_pipeline(services)
