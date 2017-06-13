@@ -3,6 +3,8 @@ local T = require(package..'trafaret')
 local func = require(package..'func')
 
 local SMOOTH_STAGES = 10
+local MAXIMUM_PAUSED = 1800000  -- revert if paused for 30 min
+local EXECUTORS = {}
 
 local CONFIG = T.Map { T.String {}, T.Or {
     T.Dict {
@@ -37,6 +39,17 @@ local PIPELINE = T.List { T.Dict {
     [T.Key { "backward_time", default=5 }]=T.Number {},
     [T.Key { "processes", default={} }]=T.List { T.String {} },
 }}
+
+local STATE = T.Dict {
+    pipeline=PIPELINE,
+    step=T.String {},
+    direction=T.Enum {"forward", "backward", "pause"},
+    start_ts=T.Number {},
+    step_ts=T.Number {},
+    change_ts=T.Number {},
+    [T.Key { "pause_ts", optional=true }]=T.Number {},
+    [T.Key { "smooth_percent", optional=true }]=T.Number {},
+}
 
 local function validate_config(config)
     return T.validate(CONFIG, config)
@@ -262,7 +275,78 @@ local function derive_pipeline(config)
     return result
 end
 
+local function internal_tick(state, now, log)
+    if state.direction == 'paused' then
+        if state.pause_ts - now > MAXIMUM_PAUSED then
+            state.direction = 'backwards'
+            log:change("paused for too long, reverting")
+        else
+            return state
+        end
+    end
+    if state.step == 'start' then
+        if #state.pipeline > 0 then
+            return {
+                direction='forward',
+                change_ts=now,
+                step_ts=now,
+                start_ts=now,
+                step=state.pipeline[1].name,
+                pipeline=state.pipeline,
+            }
+        else
+            return {
+                direction='forward',
+                change_ts=now,
+                step_ts=now,
+                start_ts=now,
+                step='done',
+                pipeline=state.pipeline,
+            }
+        end
+    elseif state.step == 'done' then
+        log:error("Done step should not be passed to the 'tick' function")
+        return nil
+    end
+    for idx, step in ipairs(state.pipeline) do
+        if step.name == state.step then
+            local action = state.direction..'_'..step.forward_mode
+
+            local fun = EXECUTORS[action]
+            if fun == nil then
+                log:error("Step", state.step,
+                    "action", action, "is unimplemented")
+                return nil
+            end
+            return fun(state, step, idx, log)
+        end
+    end
+    log:error("Step", state.step, "not found")
+    return nil
+end
+
+local function tick(input, now, log)
+    local ok, state, err = T.validate(STATE, input)
+    if not ok then
+        log:invalid("update state error", input, err)
+        return nil
+    end
+
+    local nstate = internal_tick(state, now, log)
+
+    local ok2, result, err2 = T.validate(STATE, nstate)
+    if not ok2 then
+        log:invalid("bad state after update", nstate, err2)
+    end
+    if nstate == nil or not ok2 then
+        log:change("forcing revert, sorry")
+    end
+
+    return result
+end
+
 return {
     validate_config=validate_config,
     derive_pipeline=derive_pipeline,
+    tick=tick,
 }

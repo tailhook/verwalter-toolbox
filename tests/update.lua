@@ -4,6 +4,7 @@ local test = busted.test
 local describe = busted.describe
 
 local update = require("modules/update")
+local mocks = require("tests/mocks")
 
 describe("updates: typical setup", function()
     local processes = {
@@ -223,5 +224,35 @@ describe("updates: stages", function()
                 backward_time=80,
             },
         })
+    end)
+end)
+
+describe("updates: ticks", function()
+    local SIMPLE = {{
+        name="quick_restart",
+        processes={"x"},
+        forward_mode="time",
+        forward_time=5,
+        backward_mode="time",
+        backward_time=5,
+    }}
+    test("start", function()
+        local logger = mocks.Logger("role")
+        local nstate = update.tick({
+            pipeline=SIMPLE,
+            step="start",
+            direction="forward",
+            start_ts=1,
+            step_ts=1,
+            change_ts=1,
+        }, 100, logger)
+        assert.is.same({
+            direction='forward',
+            change_ts=100,
+            step_ts=100,
+            start_ts=100,
+            step='quick_restart',
+            pipeline=SIMPLE,
+        }, nstate)
     end)
 end)
