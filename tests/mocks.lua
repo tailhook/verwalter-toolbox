@@ -1,3 +1,5 @@
+local repr = require("modules/repr")
+
 local _MockLogger = {}
 
 local function Logger(role, prefix, list)
@@ -44,9 +46,9 @@ function _MockLogger:change(...)
 end
 
 function _MockLogger:invalid(msg, data, err)
-    -- TODO(tailhook) print repr of data
+    log(self.role_name, 'ERROR', tostring(msg)..", data:", repr.log_repr(data))
     for _, e in ipairs(err) do
-        log(self.role_name, 'ERROR', msg, data, e)
+        log(self.role_name, 'ERROR', tostring(msg)..", error:", e)
     end
 end
 

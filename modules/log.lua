@@ -106,10 +106,9 @@ function _Logger:change(...)
 end
 
 function _Logger:invalid(msg, data, err)
-    -- TODO(tailhook) print repr of data
-    log(self.role_name, 'ERROR', msg, ", data:", repr.log_repr(data))
+    log(self.role_name, 'ERROR', tostring(msg)..", data:", repr.log_repr(data))
     for _, e in ipairs(err) do
-        log(self.role_name, 'ERROR', msg, ", error:", e)
+        log(self.role_name, 'ERROR', tostring(msg)..", error:", e)
     end
 end
 
