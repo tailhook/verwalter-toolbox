@@ -1,5 +1,6 @@
 local package = (...):match("(.-)[^/]+$")
 local func = require(package..'func')
+local log = require(package..'log')
 
 local _Role = {}
 
@@ -74,6 +75,7 @@ end
 
 -- this is mostly for tests
 local function from_fields(params)
+    params.log = log.Logger(params.name)
     setmetatable(params, {__index=_Role, __tostring=tostring})
     return params
 end

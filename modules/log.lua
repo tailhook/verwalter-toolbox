@@ -1,6 +1,7 @@
 local package = (...):match("(.-)[^/]+$")
 local json = require(package.."json")
 local func = require(package.."func")
+local repr = require(package.."repr")
 
 local text = nil
 local changes = {}
@@ -106,8 +107,9 @@ end
 
 function _Logger:invalid(msg, data, err)
     -- TODO(tailhook) print repr of data
+    log(self.role_name, 'ERROR', msg, ", data:", repr.log_repr(data))
     for _, e in ipairs(err) do
-        log(self.role_name, 'ERROR', msg, data, e)
+        log(self.role_name, 'ERROR', msg, ", error:", e)
     end
 end
 

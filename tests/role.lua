@@ -28,9 +28,11 @@ describe("state by role", function()
         assert.are.same({
                 other_role={
                    name='other_role',
+                   log={prefix='', role_name='other_role'},
                 },
                 some_role={
                    name='some_role',
+                   log={prefix='', role_name='some_role'},
                 },
             }, role.from_state { schedule, driver=noop_driver })
     end)
