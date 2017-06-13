@@ -27,7 +27,11 @@ local function log(...)
         if i > 1 then
             text = text .. " "
         end
-        text = text .. tostring(v)
+        if type(v) == 'table' then
+            text = text .. repr.log_repr(v)
+        else
+            text = text .. tostring(v)
+        end
     end
     print(text)
     return text

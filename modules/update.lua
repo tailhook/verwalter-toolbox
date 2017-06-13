@@ -275,6 +275,39 @@ local function derive_pipeline(config)
     return result
 end
 
+local function next_step(state, _, idx, now, log)
+    if idx >= #state.pipeline then
+        log:debug("update done at step", idx)
+        return {
+            step="done",
+            direction="forward",
+            start_ts=now,
+            step_ts=now,
+            change_ts=now,
+            pipeline=state.pipeline
+        }
+    else
+        log:debug("next step is", state.pipeline[idx+1])
+        return {
+            step=state.pipeline[idx+1].name,
+            direction="forward",
+            start_ts=now,
+            step_ts=now,
+            change_ts=now,
+            pipeline=state.pipeline
+        }
+    end
+end
+
+function EXECUTORS.forward_time(state, step, idx, now, log)
+    if state.step_ts + step.forward_time < now then
+        return next_step(state, step, idx, now, log)
+    else
+        -- do nothing
+        return state
+    end
+end
+
 local function internal_tick(state, now, log)
     if state.direction == 'paused' then
         if state.pause_ts - now > MAXIMUM_PAUSED then
@@ -285,25 +318,7 @@ local function internal_tick(state, now, log)
         end
     end
     if state.step == 'start' then
-        if #state.pipeline > 0 then
-            return {
-                direction='forward',
-                change_ts=now,
-                step_ts=now,
-                start_ts=now,
-                step=state.pipeline[1].name,
-                pipeline=state.pipeline,
-            }
-        else
-            return {
-                direction='forward',
-                change_ts=now,
-                step_ts=now,
-                start_ts=now,
-                step='done',
-                pipeline=state.pipeline,
-            }
-        end
+        return next_step(state, nil, 0, now, log)
     elseif state.step == 'done' then
         log:error("Done step should not be passed to the 'tick' function")
         return nil
@@ -318,7 +333,7 @@ local function internal_tick(state, now, log)
                     "action", action, "is unimplemented")
                 return nil
             end
-            return fun(state, step, idx, log)
+            return fun(state, step, idx, now, log)
         end
     end
     log:error("Step", state.step, "not found")
@@ -334,12 +349,15 @@ local function tick(input, now, log)
 
     local nstate = internal_tick(state, now, log)
 
+    if nstate == nil then
+        log:change("forcing revert, sorry")
+        return nil
+    end
     local ok2, result, err2 = T.validate(STATE, nstate)
     if not ok2 then
         log:invalid("bad state after update", nstate, err2)
-    end
-    if nstate == nil or not ok2 then
         log:change("forcing revert, sorry")
+        return nil
     end
 
     return result
