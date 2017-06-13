@@ -12,6 +12,7 @@ local _Atom = {}
 local _Or = {}
 local _Bool = {}
 local _Choice = {}
+local _Enum = {}
 
 function _Atom:convert(value, validator, path)
     if value == self.value then
@@ -278,6 +279,27 @@ local function Choice(params)
     return obj
 end
 
+function _Enum:convert(value, validator, path)
+    for _, item in pairs(self.options) do
+        if value == item then
+            return value
+        end
+    end
+    validator:add_error(path, self,
+        "Must be one of", table.concat(self.options, ", "))
+    return nil
+end
+
+local function Enum(params)
+    local arr = {}
+    for i, item in ipairs(params) do
+        arr[i] = item
+    end
+    local obj = {options=arr}
+    setmetatable(obj, {__index=_Enum})
+    return obj
+end
+
 local function validate(trafaret, value)
     local val = Validator()
     local status, cleaned = xpcall(
@@ -303,6 +325,7 @@ return {
     List=List,
     Map=Map,
     Or=Or,
+    Enum=Enum,
     Choice=Choice,
     Bool=Bool,
     validate=validate,
