@@ -251,8 +251,9 @@ function ACTIONS.force_version(role, action, _, now)
         group.last_deployed[group.version] = now
     end
     if role.versions[button.to_version] == nil then
-        role.log:sub(button.group).error("no such version",
+        role.log:sub(button.group):error("no such version",
             repr.log_repr(button.to_version))
+        return
     end
     -- TODO(tailhook) reset all migration data
     group.version = button.to_version
