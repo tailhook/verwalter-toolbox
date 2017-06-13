@@ -7,12 +7,12 @@ local text = nil
 local changes = {}
 local _Logger = {}
 
-local function log(role_name, level_name, ...)
+local function log(role_name, level_name, prefix, ...)
     if text == nil then  -- in unit tests probably
         print(role_name, level_name, ...)
         return
     end
-    text = text .. "["..role_name.."]:"..level_name..": "
+    text = text .. "["..role_name.."]:"..level_name..": "..prefix
     for i, v in pairs({...}) do
         if i > 1 then
             text = text .. " "
@@ -27,19 +27,19 @@ local function log(role_name, level_name, ...)
 end
 
 local function print(...)
-    log("no-role", "DEBUG", ...)
+    log("no-role", "DEBUG", "", ...)
 end
 
 local function role_error(role_name, ...)
-    log(role_name, "ERROR", ...)
+    log(role_name, "ERROR", "", ...)
 end
 
 local function role_debug(role_name, ...)
-    log(role_name, "DEBUG", ...)
+    log(role_name, "DEBUG", "", ...)
 end
 
 local function role_change(role_name, ...)
-    log(role_name, "CHANGE", ...)
+    log(role_name, "CHANGE", "", ...)
     local change = role_name .. ":"
     for _, v in pairs({...}) do
         change = change .. " "
@@ -96,29 +96,30 @@ end
 
 function _Logger:sub(name)
     if self.prefix == '' then
-        return Logger(self.role_name, name)
+        return Logger(self.role_name, ' '..name..':')
     else
-        return Logger(self.role_name, self.prefix .. '.' .. name)
+        return Logger(self.role_name,
+            self.prefix.sub(1, -1)..'.'..name..':')
     end
 end
 
 function _Logger:debug(...)
-    log(self.role_name, "DEBUG", self.prefix .. ':', ...)
+    log(self.role_name, "DEBUG", self.prefix, ...)
 end
 
 function _Logger:error(...)
-    log(self.role_name, "ERROR", self.prefix .. ':', ...)
+    log(self.role_name, "ERROR", self.prefix, ...)
 end
 
 function _Logger:change(...)
-    role_change(self.role_name, self.prefix .. ':', ...)
+    role_change(self.role_name, self.prefix, ...)
 end
 
 function _Logger:invalid(msg, data, err)
-    log(self.role_name, 'ERROR', self.prefix .. ':',
+    log(self.role_name, 'ERROR', self.prefix,
         tostring(msg)..", data:", data)
     for _, e in ipairs(err) do
-        log(self.role_name, 'ERROR', self.prefix .. ':',
+        log(self.role_name, 'ERROR', self.prefix,
             tostring(msg)..", error:", e)
     end
 end

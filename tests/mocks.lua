@@ -14,9 +14,10 @@ end
 
 function _MockLogger:sub(name)
     if self.prefix == '' then
-        return Logger(self.role_name, name, self.list)
+        return Logger(self.role_name, ' '..name..':')
     else
-        return Logger(self.role_name, self.prefix .. '.' .. name, self.list)
+        return Logger(self.role_name,
+            self.prefix.sub(1, -1)..'.'..name..':')
     end
 end
 
