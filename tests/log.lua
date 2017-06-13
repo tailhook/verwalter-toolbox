@@ -4,6 +4,7 @@ local test = busted.test
 local describe = busted.describe
 
 local log = require("modules/log")
+local mocks = require("tests/mocks")
 
 describe("log: wrap scheduler", function()
     test("normal_output", function()
@@ -61,5 +62,25 @@ describe("log: wrap scheduler", function()
         assert.is.same('{"a":1,"changes":["other: important change"]}', data)
         assert.is.same(output,
             "[other]:CHANGE: important change\n")
+    end)
+
+    test("logger debug", function()
+        local logger = log.Logger("other")
+        local data, output = log.wrap_scheduler(function()
+            logger:debug("some", "data")
+            return {a=1}
+        end)({})
+        assert.is.same(data, '{"a":1}')
+        assert.is.same(output,
+            "[other]:DEBUG: some data\n")
+    end)
+end)
+
+describe("log: test_mocks", function()
+    test("logger debug", function()
+        local logger = mocks.Logger("other")
+        logger:debug("some", "data")
+        assert.is.same(logger.list,
+            {"other DEBUG some data"})
     end)
 end)

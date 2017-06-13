@@ -4,6 +4,7 @@ local func = require(package.."func")
 
 local text = nil
 local changes = {}
+local _Logger = {}
 
 local function log(role_name, level_name, ...)
     if text == nil then  -- in unit tests probably
@@ -74,9 +75,46 @@ local function wrap_scheduler(real_scheduler)
     end
 end
 
+local function Logger(role, prefix)
+    local obj = {
+        role_name=role or 'no-role',
+        prefix=prefix or '',
+    }
+    setmetatable(obj, {__index=_Logger})
+    return obj
+end
+
+function _Logger:sub(name)
+    if self.prefix == '' then
+        return Logger(self.role_name, name)
+    else
+        return Logger(self.role_name, self.prefix .. '.' .. name)
+    end
+end
+
+function _Logger:debug(...)
+    log(self.role_name, "DEBUG", ...)
+end
+
+function _Logger:error(...)
+    log(self.role_name, "ERROR", ...)
+end
+
+function _Logger:change(...)
+    role_change(self.role_name, ...)
+end
+
+function _Logger:invalid(msg, data, err)
+    -- TODO(tailhook) print repr of data
+    for _, e in ipairs(err) do
+        log(self.role_name, 'ERROR', msg, data, e)
+    end
+end
+
 return {
     wrap_scheduler=wrap_scheduler,
     role_error=role_error,
     role_debug=role_debug,
     role_change=role_change,
+    Logger=Logger,
 }
