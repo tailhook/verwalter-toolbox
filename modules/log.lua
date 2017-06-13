@@ -17,7 +17,11 @@ local function log(role_name, level_name, ...)
         if i > 1 then
             text = text .. " "
         end
-        text = text .. tostring(v)
+        if type(v) == 'table' then
+            text = text .. repr.log_repr(v)
+        else
+            text = text .. tostring(v)
+        end
     end
     text = text .. "\n"
 end
@@ -38,7 +42,12 @@ local function role_change(role_name, ...)
     log(role_name, "CHANGE", ...)
     local change = role_name .. ":"
     for _, v in pairs({...}) do
-        change = change .. " " .. tostring(v)
+        change = change .. " "
+        if type(v) == 'table' then
+            change = change .. repr.log_repr(v)
+        else
+            change = change .. tostring(v)
+        end
     end
     table.insert(changes, change)
 end
@@ -106,7 +115,7 @@ function _Logger:change(...)
 end
 
 function _Logger:invalid(msg, data, err)
-    log(self.role_name, 'ERROR', tostring(msg)..", data:", repr.log_repr(data))
+    log(self.role_name, 'ERROR', tostring(msg)..", data:", data)
     for _, e in ipairs(err) do
         log(self.role_name, 'ERROR', tostring(msg)..", error:", e)
     end
