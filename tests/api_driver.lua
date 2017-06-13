@@ -4,11 +4,12 @@ local test = busted.test
 local describe = busted.describe
 
 local api = require("modules/drivers/api")
+local mocks = require("tests/mocks")
 
 describe("check_action", function()
     test("actions 1", function()
         local valid, inv = api._check_actions(
-            {name="myrole"},
+            {name="myrole", log=mocks.Logger("myrole")},
             {
                 ["1496068428001"]={button={
                     action="create_group", role="myrole",

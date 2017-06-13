@@ -90,12 +90,10 @@ local function check_actions(role, actions)
         local status, val, err = T.validate(ACTION, action)
         val.timestamp = tonumber(timestamp)
         if status then
-            log.role_debug(role.name, "action", val.button.action, "is valid")
+            role.log:debug("action", val.button.action, "is valid")
             table.insert(valid_actions, val)
         else
-            for _, e in ipairs(err) do
-                log.role_error(role.name, 'action', action, 'is invalid:', e)
-            end
+            role.log:invalid("bad action", action, err)
             table.insert(invalid_actions, val)
         end
     end
