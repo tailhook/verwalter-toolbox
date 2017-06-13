@@ -103,21 +103,23 @@ function _Logger:sub(name)
 end
 
 function _Logger:debug(...)
-    log(self.role_name, "DEBUG", ...)
+    log(self.role_name, "DEBUG", self.prefix .. ':', ...)
 end
 
 function _Logger:error(...)
-    log(self.role_name, "ERROR", ...)
+    log(self.role_name, "ERROR", self.prefix .. ':', ...)
 end
 
 function _Logger:change(...)
-    role_change(self.role_name, ...)
+    role_change(self.role_name, self.prefix .. ':', ...)
 end
 
 function _Logger:invalid(msg, data, err)
-    log(self.role_name, 'ERROR', tostring(msg)..", data:", data)
+    log(self.role_name, 'ERROR', self.prefix .. ':',
+        tostring(msg)..", data:", data)
     for _, e in ipairs(err) do
-        log(self.role_name, 'ERROR', tostring(msg)..", error:", e)
+        log(self.role_name, 'ERROR', self.prefix .. ':',
+            tostring(msg)..", error:", e)
     end
 end
 
