@@ -6,6 +6,7 @@ local T = require(super..'trafaret')
 local log = require(super..'log')
 local func = require(super..'func')
 local update = require(super..'update')
+local repr = require(super..'repr')
 local ACTIONS = {}
 local LAST_DEPLOYED_LIFETIME = 86400
 local LAST_UPLOADED_LIFETIME = 86400
@@ -243,14 +244,16 @@ function ACTIONS.force_version(role, action, _, now)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
-        log.role_error(role.name,
-            'group', button.group, 'does not exists')
+        role.log:error('group', repr.log_repr(button.group), 'does not exists')
         return
     end
     if group.version and group.version ~= button.to_version then
         group.last_deployed[group.version] = now
     end
-    -- TODO(tailhook) check that version exists
+    if role.versions[button.to_version] == nil then
+        role.log:sub(button.group).error("no such version",
+            repr.log_repr(button.to_version))
+    end
     -- TODO(tailhook) reset all migration data
     group.version = button.to_version
 end
