@@ -49,7 +49,7 @@ local STATE = T.Dict {
     step_ts=T.Number {},
     change_ts=T.Number {},
     [T.Key { "pause_ts", optional=true }]=T.Number {},
-    [T.Key { "smooth_percent", optional=true }]=T.Number {},
+    [T.Key { "smooth_step", optional=true }]=T.Number {},
 }
 
 local function validate_config(config)
@@ -361,6 +361,38 @@ end
 
 function EXECUTORS.backward_ack(state, _, _, _, _)
     return state
+end
+
+function EXECUTORS.forward_smooth(state, step, idx, now, log)
+    local step_no = state.smooth_step or 0
+    if state.change_ts + (step.forward_time / step.substeps) < now then
+        state.change_ts = now
+        if step_no >= step.substeps then
+            return next_step(state, step, idx, now, log)
+        end
+        state.smooth_step = step_no + 1
+        return state
+    else
+        return state
+    end
+end
+
+function EXECUTORS.backward_smooth(state, step, idx, now, log)
+    local step_no = state.smooth_step or 0
+    if state.change_ts + (step.backward_time / step.substeps) < now then
+        state.change_ts = now
+        if step_no >= step.substeps then
+            return prev_step(state, step, idx, now, log)
+        end
+        state.smooth_step = step_no - 1
+        return state
+    else
+        return state
+    end
+end
+
+function EXECUTORS.backward_skip(state, step, idx, now, log)
+    return prev_step(state, step, idx, now, log)
 end
 
 local function internal_tick(state, now, log)
