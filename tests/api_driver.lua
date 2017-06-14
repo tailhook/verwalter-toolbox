@@ -36,7 +36,8 @@ describe("check_action", function()
         })
     end)
     test("merge_states", function()
-        local state = api._merge_states("r1", {
+        local log = mocks.Logger("r1")
+        local state = api._merge_states({name="r1", log=log}, {
             {state={groups={
                 g1={
                     version='v7',

@@ -460,8 +460,22 @@ local function tick(input, now, log)
     return result
 end
 
+local function start(source, target, pipeline, now)
+    return {
+        source_ver=source,
+        target_ver=target,
+        step="start",
+        direction="forward",
+        start_ts=now,
+        step_ts=now,
+        change_ts=now,
+        pipeline=pipeline,
+    }
+end
+
 return {
     validate_config=validate_config,
     derive_pipeline=derive_pipeline,
     tick=tick,
+    start=start,
 }

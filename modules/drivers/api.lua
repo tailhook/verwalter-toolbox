@@ -3,7 +3,6 @@ local super = package:match("(.-)[^/]+/$")
 local version_util = require(super..'version_util')
 local version = require(super..'version')
 local T = require(super..'trafaret')
-local log = require(super..'log')
 local func = require(super..'func')
 local update = require(super..'update')
 local repr = require(super..'repr')
@@ -43,6 +42,12 @@ local ACTION = T.Dict {
         },
         force_version=T.Dict {
             action=T.Atom { "force_version" },
+            role=T.String {},
+            group=T.String {},
+            to_version=T.String {},
+        },
+        start_update=T.Dict {
+            action=T.Atom { "start_update" },
             role=T.String {},
             group=T.String {},
             to_version=T.String {},
@@ -128,20 +133,18 @@ local function merge_states(role, parents)
             end
         else
             for _, e in ipairs(err) do
-                log.role_error(role.name,
-                    'parent state',
-                    parent.hash or 'unknown-hash',
-                    'from',
-                    parent.origin or 'unknown-host',
+                role.log:error(
+                    'parent state', parent.hash or 'unknown-hash',
+                    'from', parent.origin or 'unknown-host',
                     'is invalid:', e)
             end
         end
     end
     local ngroups = func.count_keys(groups)
     if ngroups == 0 then
-        log.role_debug(role.name, "No groups configured")
+        role.log:debug("No groups configured")
     else
-        log.role_debug(role.name, ngroups, "groups found")
+        role.log:debug(ngroups, "groups found")
     end
     local tmp_state = {
         groups=groups,
@@ -149,7 +152,7 @@ local function merge_states(role, parents)
     local status, state, err = T.validate(STATE, tmp_state)
     if not status then
         for _, e in ipairs(err) do
-            log.role_error(role.name, 'merged state is invalid:', e)
+            role.log:error('merged state is invalid:', e)
         end
     end
     return state
@@ -158,10 +161,9 @@ end
 function ACTIONS.create_group(role, action, _, _)
     local button = action.button
     if role.state.groups[button.group_name] then
-        log.role_error(role.name, 'group', button.group_name,
-            'already exists')
+        role.log:error('group', button.group_name, 'already exists')
     else
-        log.role_change(role.name, 'new group', button.group_name)
+        role.log:change('new group', button.group_name)
         role.state.groups[button.group_name] = {
             version=button.version,
         }
@@ -172,8 +174,7 @@ function ACTIONS.add_daemon(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
-        log.role_error(role.name,
-            'group', button.group, 'does not exists')
+        role.log:error('group', button.group, 'does not exists')
         return
     end
     local services = group.services
@@ -181,22 +182,19 @@ function ACTIONS.add_daemon(role, action, _, _)
         services = {}
         group.services = services
     end
+    local log = role.log:sub(button.group)
     if services[button.new_name] ~= nil then
-        log.role_error(role.name,
-            'group', button.group, 'already has service', button.new_name)
+        log:error('group already has service', button.new_name)
         return
     end
     local meta = role.versions[group.version]
     if meta == nil then
-        log.role_error(role.name,
-            'group', button.group,
-            "has no stable version, can't add a deamon in this case")
+        log:error(
+            "group has no stable version, can't add a deamon in this case")
         return
     end
     if meta.daemons == nil or meta.daemons[button.service] == nil then
-        log.role_error(role.name,
-            'group', button.group,
-            "of current version has no daemon", button.service)
+        log:error("group of current version has no daemon", button.service)
         return
     end
     services[button.new_name] = {
@@ -211,8 +209,7 @@ function ACTIONS.enable_auto_update(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
-        log.role_error(role.name,
-            'group', button.group, 'does not exists')
+        role.log:error('group', button.group, 'does not exists')
         return
     end
     group.auto_update = true
@@ -222,8 +219,7 @@ function ACTIONS.disable_auto_update(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
-        log.role_error(role.name,
-            'group', button.group, 'does not exists')
+        role.log:error('group', button.group, 'does not exists')
         return
     end
     group.auto_update = false
@@ -233,8 +229,7 @@ function ACTIONS.delete_group(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
-        log.role_error(role.name,
-            'group', button.group, 'does not exists')
+        role.log:error('group', button.group, 'does not exists')
         return
     end
     role.state.groups[button.group] = nil
@@ -255,23 +250,46 @@ function ACTIONS.force_version(role, action, _, now)
             repr.log_repr(button.to_version))
         return
     end
-    -- TODO(tailhook) reset all migration data
     group.version = button.to_version
+    group.update = nil
+end
+
+function ACTIONS.start_update(role, action, _, now)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    local log = role.log:sub(button.group)
+    if not group then
+        log:error('group does not exists')
+        return
+    end
+    if group.update ~= nil then
+        log:error('group is still updating')
+        return
+    end
+    if group.version and group.version ~= button.to_version then
+        group.last_deployed[group.version] = now
+    end
+    if role.versions[button.to_version] == nil then
+        log:error("no such version", repr.log_repr(button.to_version))
+        return
+    end
+    log:changes("starting upgrade from", group.version,
+        "to", button.to_version)
+    group.update = update.start(group.version, button.to_version,
+        group.pipeline, now)
 end
 
 function ACTIONS.set_servers(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
-        log.role_error(role.name,
-            'group', button.group, 'does not exists')
+        role.log:error('group', button.group, 'does not exists')
         return
     end
     local svc = group.services[button.service]
     if not svc then
-        log.role_error(role.name,
-            'group', button.group, 'service',
-            button.service, 'does not exists')
+        role.log:sub(button.group):error(
+            'service', button.service, 'does not exists')
         return
     end
     svc.servers = button.servers
@@ -281,15 +299,13 @@ function ACTIONS.set_number_per_server(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
-        log.role_error(role.name,
-            'group', button.group, 'does not exists')
+        role.log:error('group', button.group, 'does not exists')
         return
     end
     local svc = group.services[button.service]
     if not svc then
-        log.role_error(role.name,
-            'group', button.group, 'service',
-            button.service, 'does not exists')
+        role.log:sub(button.group):error(
+            'service', button.service, 'does not exists')
         return
     end
     svc.number_per_server = button.number_per_server
@@ -298,33 +314,31 @@ end
 local function execute_actions(role, actions, now)
     for timestamp, a in pairs(actions) do
         local aname = a.button.action
-        log.role_debug(role.name, 'action', aname)
+        role.log:debug('action', aname)
         local fun = ACTIONS[aname]
         if fun ~= nil then
             -- TODO(tailhook) maybe use xpcall ?
             fun(role, a, timestamp, now)
         else
-            log.role_error(role.name, 'action', aname, 'is unknown. Skipped.')
+            role.log:error('action', aname, 'is unknown. Skipped.')
         end
     end
 
     local status, _, err = T.validate(STATE, role.state)
     if not status then
         for _, e in ipairs(err) do
-            log.role_error(role.name,
-                'state is invalid after executing actions:', e)
+            role.log:error('state is invalid after executing actions:', e)
         end
     end
 end
 
 local function auto_update_versions(role, now)
     for gname, group in pairs(role.state.groups) do
-        -- TODO(tailhook) execute migrations
+        -- TODO(tailhook) execute smooth updates!!!
         if group.auto_update then
             local nver = role.descending_versions[1]
             if group.version ~= nver then
-                log.role_change(role.name,
-                    "Group", gname, "automatic update:",
+                role.log:sub(gname):change("Automatic update:",
                     group.version, "-> ", nver)
                 group.last_deployed[group.version] = now
                 group.version = nver
@@ -335,8 +349,7 @@ local function auto_update_versions(role, now)
     local status, _, err = T.validate(STATE, role.state)
     if not status then
         for _, e in ipairs(err) do
-            log.role_error(role.name,
-                'state is invalid after executing updates:', e)
+            role.log:error('state is invalid after executing updates:', e)
         end
     end
 end
@@ -354,6 +367,10 @@ local function cleanup(role, now)
     for _, group in pairs(role.state.groups) do
 
         alive_versions[group.version] = true
+        if group.update then
+            alive_versions[group.source_ver] = true
+            alive_versions[group.target_ver] = true
+        end
 
         local to_remove = {}
         local last_ver = nil
@@ -393,8 +410,7 @@ local function cleanup(role, now)
     local status, _, err = T.validate(STATE, role.state)
     if not status then
         for _, e in ipairs(err) do
-            log.role_error(role.name,
-                'state is invalid after executing updates:', e)
+            role.log:error('state is invalid after executing updates:', e)
         end
     end
 end
@@ -413,8 +429,7 @@ local function calculate_pipelines(role)
         if pipeline then
             update_pipelines[group_name] = pipeline
         else
-            log.role_log(role.name, "group", group_name,
-                "don't have a valid update pipeline")
+            role.log:sub(group_name):error("no valid update pipeline")
         end
     end
     return update_pipelines
