@@ -138,6 +138,7 @@ local function merge_states(role, parents)
                     'from', parent.origin or 'unknown-host',
                     'is invalid:', e)
             end
+            error("Can't proceed because role "..role.name.." can be dead")
         end
     end
     local ngroups = func.count_keys(groups)
@@ -273,7 +274,7 @@ function ACTIONS.start_update(role, action, _, now)
         log:error("no such version", repr.log_repr(button.to_version))
         return
     end
-    log:changes("starting upgrade from", group.version,
+    log:change("starting upgrade from", group.version,
         "to", button.to_version)
     group.update = update.start(group.version, button.to_version,
         group.pipeline, now)
@@ -368,8 +369,8 @@ local function cleanup(role, now)
 
         alive_versions[group.version] = true
         if group.update then
-            alive_versions[group.source_ver] = true
-            alive_versions[group.target_ver] = true
+            alive_versions[group.update.source_ver] = true
+            alive_versions[group.update.target_ver] = true
         end
 
         local to_remove = {}
