@@ -13,6 +13,7 @@ local _Or = {}
 local _Bool = {}
 local _Choice = {}
 local _Enum = {}
+local _Any = {}
 
 function _Atom:convert(value, validator, path)
     if value == self.value then
@@ -26,6 +27,17 @@ end
 local function Atom(props)
     local obj = {value=props[1]}
     setmetatable(obj, {__index=_Atom})
+    return obj
+end
+
+function _Any:convert(value, _, _)
+    local _ = self
+    return value
+end
+
+local function Any(_)
+    local obj = {}
+    setmetatable(obj, {__index=_Any})
     return obj
 end
 
@@ -317,6 +329,7 @@ local function validate(trafaret, value)
 end
 
 return {
+    Any=Any,
     Atom=Atom,
     Number=Number,
     String=String,
