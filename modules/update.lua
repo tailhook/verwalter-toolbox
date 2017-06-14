@@ -2,7 +2,7 @@ local package = (...):match("(.-)[^/]+$")
 local T = require(package..'trafaret')
 local func = require(package..'func')
 
-local SMOOTH_STAGES = 10
+local SMOOTH_DEFAULT_SUBSTEPS = 10
 local MAXIMUM_PAUSED = 1800000  -- revert if paused for 30 min
 local EXECUTORS = {}
 
@@ -22,6 +22,7 @@ local CONFIG = T.Map { T.String {}, T.Or {
         [T.Key { "test_mode_percent", default=0 }]=T.Number {},
         [T.Key { "warmup_sec", default=1 }]=T.Number {},
         [T.Key { "smooth_mode", optional=true }]=T.String {},
+        [T.Key { "smooth_substeps", optional=true }]=T.Number {},
         [T.Key { "before", optional=true }]=T.List { T.String {} },
         [T.Key { "after", optional=true }]=T.List { T.String {} },
     },
@@ -129,23 +130,28 @@ end
 
 local function add_smooth_restart(stages, daemon, cfg)
     local stage = stages['smooth_restart']
+    local substeps = cfg.smooth_substeps or SMOOTH_DEFAULT_SUBSTEPS
     if stage ~= nil then
         table.insert(stage.processes, daemon)
         -- predictable order, list is just few items, so is very quick
         table.sort(stage.processes)
-        if stage.forward_time < cfg.warmup_sec*SMOOTH_STAGES then
-            stage.forward_time = cfg.warmup_sec*SMOOTH_STAGES
+        if stage.substeps < substeps then
+            stage.substeps = substeps
         end
-        if stage.backward_time < cfg.warmup_sec*SMOOTH_STAGES then
-            stage.backward_time = cfg.warmup_sec*SMOOTH_STAGES
+        if stage.forward_time < cfg.warmup_sec*substeps then
+            stage.forward_time = cfg.warmup_sec*substeps
+        end
+        if stage.backward_time < cfg.warmup_sec*substeps then
+            stage.backward_time = cfg.warmup_sec*substeps
         end
     else
         stages['smooth_restart'] = {
             name="smooth_restart",
             forward_mode="smooth",
-            forward_time=cfg.warmup_sec*SMOOTH_STAGES,
+            forward_time=cfg.warmup_sec*substeps,
             backward_mode="smooth",
-            backward_time=cfg.warmup_sec*SMOOTH_STAGES,
+            backward_time=cfg.warmup_sec*substeps,
+            substeps=substeps,
             processes={daemon},
             after=func.copy(cfg.after) or {},
             before=expand_before(cfg.before),
