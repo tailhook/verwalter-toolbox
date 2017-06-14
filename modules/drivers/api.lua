@@ -71,6 +71,14 @@ local ACTION = T.Dict {
             service=T.String {},
             servers=T.List { T.String {} },
         },
+        update_action=T.Dict {
+            action=T.Atom { "update_action" },
+            role=T.String {},
+            group=T.String {},
+            update_action=T.Enum { "pause", "revert", "resume",
+                                   "skip", "ack", "error" },
+            [T.Key { "error_message", optional=true }]=T.String {},
+        },
     },
 }
 
