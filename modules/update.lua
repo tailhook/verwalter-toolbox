@@ -478,4 +478,5 @@ return {
     derive_pipeline=derive_pipeline,
     tick=tick,
     start=start,
+    STATE=STATE,
 }

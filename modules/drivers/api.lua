@@ -77,6 +77,7 @@ local ACTION = T.Dict {
 local STATE = T.Dict {
     [T.Key { "groups", default={} }]=T.Map { T.String {}, T.Dict {
         version=T.String {},
+        [T.Key { "update", optional=true }]=T.Any {},
         [T.Key { "auto_update", default=false }]=T.Bool {},
         [T.Key { "last_deployed", default={} }]=
             T.Map { T.String {}, T.Number {} },
@@ -274,10 +275,15 @@ function ACTIONS.start_update(role, action, _, now)
         log:error("no such version", repr.log_repr(button.to_version))
         return
     end
-    log:change("starting upgrade from", group.version,
+    local pipeline = role.update_pipelines[button.group]
+    if not pipeline then
+        log:error("can't compute update pipeline")
+        return
+    end
+    log:change("starting update from", group.version,
         "to", button.to_version)
     group.update = update.start(group.version, button.to_version,
-        group.pipeline, now)
+        pipeline, now)
 end
 
 function ACTIONS.set_servers(role, action, _, _)
