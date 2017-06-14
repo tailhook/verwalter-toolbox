@@ -299,6 +299,30 @@ local function next_step(state, _, idx, now, log)
     end
 end
 
+local function prev_step(state, _, idx, now, log)
+    if idx == 1 then
+        log:debug("revert done")
+        return {
+            step="done",
+            direction="backward",
+            start_ts=now,
+            step_ts=now,
+            change_ts=now,
+            pipeline=state.pipeline
+        }
+    else
+        log:debug("prev step is", state.pipeline[idx-1])
+        return {
+            step=state.pipeline[idx-1].name,
+            direction="backward",
+            start_ts=now,
+            step_ts=now,
+            change_ts=now,
+            pipeline=state.pipeline
+        }
+    end
+end
+
 function EXECUTORS.forward_time(state, step, idx, now, log)
     if state.step_ts + step.forward_time < now then
         return next_step(state, step, idx, now, log)
@@ -306,6 +330,31 @@ function EXECUTORS.forward_time(state, step, idx, now, log)
         -- do nothing
         return state
     end
+end
+
+function EXECUTORS.backward_time(state, step, idx, now, log)
+    if state.step_ts + step.backward_time < now then
+        return prev_step(state, step, idx, now, log)
+    else
+        -- do nothing
+        return state
+    end
+end
+
+function EXECUTORS.forward_manual(state, _, _, _, _)
+    return state
+end
+
+function EXECUTORS.forward_ack(state, _, _, _, _)
+    return state
+end
+
+function EXECUTORS.backward_manual(state, _, _, _, _)
+    return state
+end
+
+function EXECUTORS.backward_ack(state, _, _, _, _)
+    return state
 end
 
 local function internal_tick(state, now, log)
