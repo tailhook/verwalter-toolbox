@@ -239,6 +239,8 @@ describe("updates: ticks", function()
     test("start", function()
         local logger = mocks.Logger("role")
         local nstate = update.tick({
+            source_ver='v1',
+            target_ver='v2',
             step="start",
             direction="forward",
             start_ts=1,
@@ -247,6 +249,8 @@ describe("updates: ticks", function()
             pipeline=SIMPLE,
         }, 100, logger)
         assert.is.same({
+            source_ver='v1',
+            target_ver='v2',
             step='quick_restart',
             direction='forward',
             change_ts=100,
@@ -258,6 +262,8 @@ describe("updates: ticks", function()
     test("quick restart", function()
         local logger = mocks.Logger("role")
         local step = {
+            source_ver='v1',
+            target_ver='v2',
             step="quick_restart",
             direction="forward",
             start_ts=1,
@@ -268,6 +274,8 @@ describe("updates: ticks", function()
         -- do nothing
         local nstate = update.tick(step, 2, logger)
         assert.is.same({
+            source_ver='v1',
+            target_ver='v2',
             step='quick_restart',
             direction='forward',
             change_ts=1,
@@ -277,6 +285,8 @@ describe("updates: ticks", function()
         }, nstate)
         local nstate2 = update.tick(step, 10, logger)
         assert.is.same({
+            source_ver='v1',
+            target_ver='v2',
             step='done',
             direction='forward',
             change_ts=10,

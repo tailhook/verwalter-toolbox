@@ -43,6 +43,8 @@ local PIPELINE = T.List { T.Dict {
 
 local STATE = T.Dict {
     pipeline=PIPELINE,
+    source_ver=T.String {},
+    target_ver=T.String {},
     step=T.String {},
     direction=T.Enum {"forward", "backward", "pause"},
     start_ts=T.Number {},
@@ -290,6 +292,8 @@ local function next_step(state, _, idx, now, log)
             start_ts=now,
             step_ts=now,
             change_ts=now,
+            source_ver=state.source_ver,
+            target_ver=state.target_ver,
             pipeline=state.pipeline
         }
     else
@@ -300,6 +304,8 @@ local function next_step(state, _, idx, now, log)
             start_ts=now,
             step_ts=now,
             change_ts=now,
+            source_ver=state.source_ver,
+            target_ver=state.target_ver,
             pipeline=state.pipeline
         }
     end
@@ -314,6 +320,8 @@ local function prev_step(state, _, idx, now, log)
             start_ts=now,
             step_ts=now,
             change_ts=now,
+            source_ver=state.source_ver,
+            target_ver=state.target_ver,
             pipeline=state.pipeline
         }
     else
@@ -324,6 +332,8 @@ local function prev_step(state, _, idx, now, log)
             start_ts=now,
             step_ts=now,
             change_ts=now,
+            source_ver=state.source_ver,
+            target_ver=state.target_ver,
             pipeline=state.pipeline
         }
     end
