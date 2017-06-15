@@ -326,6 +326,21 @@ function ACTIONS.set_number_per_server(role, action, _, _)
     svc.number_per_server = button.number_per_server
 end
 
+function ACTIONS.update_action(role, action, _, _)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        role.log:error('group', button.group, 'does not exists')
+        return
+    end
+    if role.update_actions == nil then
+        role.update_actions = {[button.group]={}}
+    elseif role.update_actions[button.group] == nil then
+        role.update_actions[button.group] = {}
+    end
+    table.insert(role.update_actions[button.group], action)
+end
+
 local function execute_actions(role, actions, now)
     for timestamp, a in pairs(actions) do
         local aname = a.button.action
@@ -451,6 +466,19 @@ local function calculate_pipelines(role)
     return update_pipelines
 end
 
+local function execute_updates(role, now)
+    for gname, group in pairs(role.state.groups or {}) do
+        if group.update then
+            local log = role.log:sub(gname)
+            group.update = update.tick(
+                group.update,
+                role.group_actions and role.group_actions[gname] or {},
+                now,
+                log)
+        end
+    end
+end
+
 local function prepare(params)
     local role = params[1]
     local global_state = params.global_state
@@ -470,6 +498,7 @@ local function prepare(params)
 
     role.update_pipelines = calculate_pipelines(role)
     execute_actions(role, role.actions, global_state.now)
+    execute_updates(role, global_state.now)
     auto_update_versions(role, global_state.now)
     cleanup(role, global_state.now)
 end

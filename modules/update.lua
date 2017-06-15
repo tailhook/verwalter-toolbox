@@ -1,6 +1,7 @@
 local package = (...):match("(.-)[^/]+$")
 local T = require(package..'trafaret')
 local func = require(package..'func')
+local repr = require(package..'repr')
 
 local SMOOTH_DEFAULT_SUBSTEPS = 10
 local MAXIMUM_PAUSED = 1800000  -- revert if paused for 30 min
@@ -39,6 +40,7 @@ local PIPELINE = T.List { T.Dict {
                T.Atom { "skip" } },
     [T.Key { "backward_time", default=5 }]=T.Number {},
     [T.Key { "processes", default={} }]=T.List { T.String {} },
+    [T.Key { "substeps", default=SMOOTH_DEFAULT_SUBSTEPS }]=T.Number {},
 }}
 
 local STATE = T.Dict {
@@ -405,7 +407,10 @@ function EXECUTORS.backward_skip(state, step, idx, now, log)
     return prev_step(state, step, idx, now, log)
 end
 
-local function internal_tick(state, now, log)
+local function internal_tick(state, actions, now, log)
+    for _, action in ipairs(actions) do
+        log:debug("unimplemented actions", repr.log_repr(action))
+    end
     if state.direction == 'paused' then
         if state.pause_ts - now > MAXIMUM_PAUSED then
             state.direction = 'backwards'
@@ -437,14 +442,14 @@ local function internal_tick(state, now, log)
     return nil
 end
 
-local function tick(input, now, log)
+local function tick(input, actions, now, log)
     local ok, state, err = T.validate(STATE, input)
     if not ok then
         log:invalid("update state error", input, err)
         return nil
     end
 
-    local nstate = internal_tick(state, now, log)
+    local nstate = internal_tick(state, actions, now, log)
 
     if nstate == nil then
         log:change("forcing revert, sorry")

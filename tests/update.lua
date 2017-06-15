@@ -247,7 +247,7 @@ describe("updates: ticks", function()
             step_ts=1,
             change_ts=1,
             pipeline=SIMPLE,
-        }, 100, logger)
+        }, {}, 100, logger)
         assert.is.same({
             source_ver='v1',
             target_ver='v2',
@@ -272,7 +272,7 @@ describe("updates: ticks", function()
             pipeline=SIMPLE,
         }
         -- do nothing
-        local nstate = update.tick(step, 2, logger)
+        local nstate = update.tick(step, {}, 2, logger)
         assert.is.same({
             source_ver='v1',
             target_ver='v2',
@@ -283,7 +283,7 @@ describe("updates: ticks", function()
             start_ts=1,
             pipeline=SIMPLE,
         }, nstate)
-        local nstate2 = update.tick(step, 10, logger)
+        local nstate2 = update.tick(step, {}, 10, logger)
         assert.is.same({
             source_ver='v1',
             target_ver='v2',
