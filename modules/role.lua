@@ -7,10 +7,12 @@ local _Role = {}
 function _Role:output()
     local images = {}
     for _, ver in pairs(self.alive_versions or {}) do
-        for _, daemon in pairs((self.versions[ver] or {daemons={}}).daemons) do
+        local daemons = (self.versions[ver] or {daemons={}}).daemons or {}
+        for _, daemon in pairs(daemons) do
             images[daemon.image] = true
         end
-        for _, cmd in pairs((self.versions[ver] or {commands={}}).commands) do
+        local commands = (self.versions[ver] or {commands={}}).commands or {}
+        for _, cmd in pairs(commands) do
             images[cmd.image] = true
         end
     end

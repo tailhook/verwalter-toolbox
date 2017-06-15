@@ -413,7 +413,8 @@ local function cleanup(role, now)
 
     local upload_cutoff = now - LAST_UPLOADED_LIFETIME
     for ver, info in pairs(role.versions) do
-        if tonumber(info.timestamp) * 1000 >= upload_cutoff then
+        local ts = tonumber(info.timestamp)
+        if ts ~= nil and ts * 1000 >= upload_cutoff then
             alive_versions[ver] = true
         end
     end
