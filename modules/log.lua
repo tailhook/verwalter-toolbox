@@ -96,10 +96,10 @@ end
 
 function _Logger:sub(name)
     if self.prefix == '' then
-        return Logger(self.role_name, ' '..name..':')
+        return Logger(self.role_name, name..': ')
     else
         return Logger(self.role_name,
-            self.prefix.sub(1, -1)..'.'..name..':')
+            self.prefix.sub(1, -1)..'.'..name..': ')
     end
 end
 

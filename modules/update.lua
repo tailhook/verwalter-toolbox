@@ -4,6 +4,7 @@ local func = require(package..'func')
 local repr = require(package..'repr')
 
 local SMOOTH_DEFAULT_SUBSTEPS = 10
+local DEFAULT_WARMUP = 5
 local MAXIMUM_PAUSED = 1800000  -- revert if paused for 30 min
 local EXECUTORS = {}
 
@@ -21,7 +22,7 @@ local CONFIG = T.Map { T.String {}, T.Or {
             -- T.Atom { "temporary_shutdown" },
         },
         [T.Key { "test_mode_percent", default=0 }]=T.Number {},
-        [T.Key { "warmup_sec", default=1 }]=T.Number {},
+        [T.Key { "warmup_sec", default=DEFAULT_WARMUP }]=T.Number {},
         [T.Key { "smooth_mode", optional=true }]=T.String {},
         [T.Key { "smooth_substeps", optional=true }]=T.Number {},
         [T.Key { "before", optional=true }]=T.List { T.String {} },
@@ -40,7 +41,7 @@ local PIPELINE = T.List { T.Dict {
                T.Atom { "skip" } },
     [T.Key { "backward_time", default=5 }]=T.Number {},
     [T.Key { "processes", default={} }]=T.List { T.String {} },
-    [T.Key { "substeps", default=SMOOTH_DEFAULT_SUBSTEPS }]=T.Number {},
+    [T.Key { "substeps", optional=true }]=T.Number {},
 }}
 
 local STATE = T.Dict {
@@ -80,23 +81,24 @@ end
 
 local function add_quick_restart(stages, daemon, cfg)
     local stage = stages['quick_restart']
+    local warmup = cfg.warmup_sec or DEFAULT_WARMUP
     if stage ~= nil then
         table.insert(stage.processes, daemon)
         -- predictable order, list is just few items, so is very quick
         table.sort(stage.processes)
-        if stage.forward_time < cfg.warmup_sec then
-            stage.forward_time = cfg.warmup_sec
+        if stage.forward_time < warmup then
+            stage.forward_time = warmup
         end
-        if stage.backward_time < cfg.warmup_sec then
-            stage.backward_time = cfg.warmup_sec
+        if stage.backward_time < warmup then
+            stage.backward_time = warmup
         end
     else
         stages['quick_restart'] = {
             name="quick_restart",
             forward_mode="time",
-            forward_time=cfg.warmup_sec,
+            forward_time=warmup,
             backward_mode="time",
-            backward_time=cfg.warmup_sec,
+            backward_time=warmup,
             processes={daemon},
             before=expand_before(cfg.before, "smooth_restart"),
             after=func.copy(cfg.after) or {},
@@ -110,19 +112,19 @@ local function add_test_mode(stages, daemon, cfg)
         table.insert(stage.processes, daemon)
         -- predictable order, list is just few items, so is very quick
         table.sort(stage.processes)
-        if stage.forward_time < cfg.warmup_sec then
-            stage.forward_time = cfg.warmup_sec
+        if stage.forward_time < warmup then
+            stage.forward_time = warmup
         end
-        if stage.backward_time < cfg.warmup_sec then
-            stage.backward_time = cfg.warmup_sec
+        if stage.backward_time < warmup then
+            stage.backward_time = warmup
         end
     else
         stages['test_mode'] = {
             name="test_mode",
             forward_mode="manual",
-            forward_time=cfg.warmup_sec,
+            forward_time=warmup,
             backward_mode="time",
-            backward_time=cfg.warmup_sec,
+            backward_time=warmup,
             processes={daemon},
             before=expand_before(cfg.before,
                         -- implicit before
@@ -135,6 +137,7 @@ end
 local function add_smooth_restart(stages, daemon, cfg)
     local stage = stages['smooth_restart']
     local substeps = cfg.smooth_substeps or SMOOTH_DEFAULT_SUBSTEPS
+    local warmup = cfg.warmup_sec or DEFAULT_WARMUP
     if stage ~= nil then
         table.insert(stage.processes, daemon)
         -- predictable order, list is just few items, so is very quick
@@ -142,19 +145,19 @@ local function add_smooth_restart(stages, daemon, cfg)
         if stage.substeps < substeps then
             stage.substeps = substeps
         end
-        if stage.forward_time < cfg.warmup_sec*substeps then
-            stage.forward_time = cfg.warmup_sec*substeps
+        if stage.forward_time < warmup*substeps then
+            stage.forward_time = warmup*substeps
         end
-        if stage.backward_time < cfg.warmup_sec*substeps then
-            stage.backward_time = cfg.warmup_sec*substeps
+        if stage.backward_time < warmup*substeps then
+            stage.backward_time = warmup*substeps
         end
     else
         stages['smooth_restart'] = {
             name="smooth_restart",
             forward_mode="smooth",
-            forward_time=cfg.warmup_sec*substeps,
+            forward_time=warmup*substeps,
             backward_mode="smooth",
-            backward_time=cfg.warmup_sec*substeps,
+            backward_time=warmup*substeps,
             substeps=substeps,
             processes={daemon},
             after=func.copy(cfg.after) or {},

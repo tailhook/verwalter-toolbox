@@ -169,6 +169,7 @@ describe("updates: stages", function()
                 forward_time=80,
                 backward_mode="smooth",
                 backward_time=80,
+                substeps=10,
             },
         })
     end)
@@ -199,6 +200,7 @@ describe("updates: stages", function()
                 forward_time=80,
                 backward_mode="smooth",
                 backward_time=80,
+                substeps=10,
             },
         })
     end)
@@ -222,6 +224,7 @@ describe("updates: stages", function()
                 forward_time=80,
                 backward_mode="smooth",
                 backward_time=80,
+                substeps=10,
             },
         })
     end)

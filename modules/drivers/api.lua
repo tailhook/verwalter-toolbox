@@ -470,11 +470,16 @@ local function execute_updates(role, now)
     for gname, group in pairs(role.state.groups or {}) do
         if group.update then
             local log = role.log:sub(gname)
-            group.update = update.tick(
-                group.update,
-                role.group_actions and role.group_actions[gname] or {},
-                now,
-                log)
+            if group.update.step == 'done' then
+                group.version = group.update.target_ver
+                group.update = nil
+            else
+                group.update = update.tick(
+                    group.update,
+                    role.group_actions and role.group_actions[gname] or {},
+                    now,
+                    log)
+            end
         end
     end
 end
