@@ -396,7 +396,7 @@ function EXECUTORS.backward_smooth(state, step, idx, now, log)
     local step_no = state.smooth_step or 0
     if state.change_ts + (step.backward_time / step.substeps) < now then
         state.change_ts = now
-        if step_no >= step.substeps then
+        if step_no <= 0 then
             return prev_step(state, step, idx, now, log)
         end
         state.smooth_step = step_no - 1
@@ -414,9 +414,9 @@ local function internal_tick(state, actions, now, log)
     for _, action in ipairs(actions) do
         log:debug("unimplemented actions", repr.log_repr(action))
     end
-    if state.direction == 'paused' then
+    if state.direction == 'pause' then
         if state.pause_ts - now > MAXIMUM_PAUSED then
-            state.direction = 'backwards'
+            state.direction = 'backward'
             log:change("paused for too long, reverting")
         else
             return state
