@@ -326,11 +326,43 @@ function ACTIONS.set_number_per_server(role, action, _, _)
     svc.number_per_server = button.number_per_server
 end
 
-function ACTIONS.update_action(role, action, _, _)
+function ACTIONS.update_action(role, action, _, now)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
         role.log:error('group', button.group, 'does not exists')
+        return
+    end
+    local log = role.log:sub(button.group)
+    if button.update_action == 'pause' then
+        if group.update == nil then
+            role.log:error("no update inprogress, can't pause")
+        else
+            role.log:change("pausing update")
+            group.update.pause_ts = now
+            group.update.change_ts = now
+            group.update.direction = 'pause'
+        end
+        return
+    elseif button.update_action == 'resume' then
+        if group.update == nil then
+            role.log:error("no update inprogress, can't resume")
+        else
+            role.log:change("resuming update")
+            group.update.pause_ts = nil
+            group.update.change_ts = now
+            group.update.direction = 'forward'
+        end
+        return
+    elseif button.update_action == 'revert' then
+        if group.update == nil then
+            role.log:error("no update inprogress, can't revert")
+        else
+            role.log:change("reverting update")
+            group.update.pause_ts = nil
+            group.update.change_ts = now
+            group.update.direction = 'backward'
+        end
         return
     end
     if role.update_actions == nil then
