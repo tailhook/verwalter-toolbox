@@ -53,6 +53,7 @@ local STATE = T.Dict {
     start_ts=T.Number {},
     step_ts=T.Number {},
     change_ts=T.Number {},
+    auto=T.Bool {},
     [T.Key { "pause_ts", optional=true }]=T.Number {},
     [T.Key { "smooth_step", optional=true }]=T.Number {},
 }
@@ -295,11 +296,12 @@ local function next_step(state, _, idx, now, log)
         return {
             step="done",
             direction="forward",
-            start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
             target_ver=state.target_ver,
+            start_ts=state.start_ts,
+            auto=state.auto,
             pipeline=state.pipeline
         }
     else
@@ -312,6 +314,7 @@ local function next_step(state, _, idx, now, log)
             change_ts=now,
             source_ver=state.source_ver,
             target_ver=state.target_ver,
+            auto=state.auto,
             pipeline=state.pipeline
         }
     end
@@ -323,11 +326,12 @@ local function prev_step(state, _, idx, now, log)
         return {
             step="done",
             direction="backward",
-            start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
             target_ver=state.target_ver,
+            start_ts=state.start_ts,
+            auto=state.auto,
             pipeline=state.pipeline
         }
     else
@@ -335,11 +339,12 @@ local function prev_step(state, _, idx, now, log)
         return {
             step=state.pipeline[idx-1].name,
             direction="backward",
-            start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
             target_ver=state.target_ver,
+            start_ts=state.start_ts,
+            auto=state.auto,
             pipeline=state.pipeline
         }
     end
@@ -363,8 +368,13 @@ function EXECUTORS.backward_time(state, step, idx, now, log)
     end
 end
 
-function EXECUTORS.forward_manual(state, _, _, _, _)
-    return state
+function EXECUTORS.forward_manual(state, step, idx, now, log)
+    if state.auto and state.step_ts + step.forward_time < now then
+        return next_step(state, step, idx, now, log)
+    else
+        -- do nothing
+        return state
+    end
 end
 
 function EXECUTORS.forward_ack(state, _, _, _, _)
@@ -535,7 +545,7 @@ local function tick(input, actions, now, log)
     return result
 end
 
-local function start(source, target, pipeline, now)
+local function start(source, target, pipeline, auto, now)
     return {
         source_ver=source,
         target_ver=target,
@@ -545,6 +555,7 @@ local function start(source, target, pipeline, now)
         step_ts=now,
         change_ts=now,
         pipeline=pipeline,
+        auto=auto,
     }
 end
 

@@ -249,6 +249,7 @@ describe("updates: ticks", function()
             start_ts=1,
             step_ts=1,
             change_ts=1,
+            auto=false,
             pipeline=SIMPLE,
         }, {}, 100, logger)
         assert.is.same({
@@ -258,7 +259,8 @@ describe("updates: ticks", function()
             direction='forward',
             change_ts=100,
             step_ts=100,
-            start_ts=100,
+            start_ts=1,
+            auto=false,
             pipeline=SIMPLE,
         }, nstate)
     end)
@@ -272,6 +274,7 @@ describe("updates: ticks", function()
             start_ts=1,
             step_ts=1,
             change_ts=1,
+            auto=false,
             pipeline=SIMPLE,
         }
         -- do nothing
@@ -284,6 +287,7 @@ describe("updates: ticks", function()
             change_ts=1,
             step_ts=1,
             start_ts=1,
+            auto=false,
             pipeline=SIMPLE,
         }, nstate)
         local nstate2 = update.tick(step, {}, 10, logger)
@@ -294,7 +298,8 @@ describe("updates: ticks", function()
             direction='forward',
             change_ts=10,
             step_ts=10,
-            start_ts=10,
+            start_ts=1,
+            auto=false,
             pipeline=SIMPLE,
         }, nstate2)
     end)

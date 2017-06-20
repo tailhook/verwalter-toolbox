@@ -291,7 +291,7 @@ function ACTIONS.start_update(role, action, _, now)
     log:change("starting update from", group.version,
         "to", button.to_version)
     group.update = update.start(group.version, button.to_version,
-        pipeline, now)
+        pipeline, false, now)
 end
 
 function ACTIONS.set_servers(role, action, _, _)
@@ -369,14 +369,22 @@ end
 
 local function auto_update_versions(role, now)
     for gname, group in pairs(role.state.groups) do
-        -- TODO(tailhook) execute smooth updates!!!
-        if group.auto_update then
+        if group.auto_update and not group.update then
             local nver = role.descending_versions[1]
             if group.version ~= nver then
-                role.log:sub(gname):change("Automatic update:",
-                    group.version, "-> ", nver)
+                local pipeline = role.update_pipelines[gname]
+                if pipeline then
+                    role.log:sub(gname):change("Starting automatic update:",
+                        group.version, "-> ", nver)
+                    group.update = update.start(
+                        group.version, nver,
+                        pipeline, true, now)
+                else
+                    role.log:sub(gname):change("Automatic update:",
+                        group.version, "-> ", nver)
+                    group.version = nver
+                end
                 group.last_deployed[group.version] = now
-                group.version = nver
             end
         end
     end
@@ -508,8 +516,8 @@ local function prepare(params)
 
     role.update_pipelines = calculate_pipelines(role)
     execute_actions(role, role.actions, global_state.now)
-    execute_updates(role, global_state.now)
     auto_update_versions(role, global_state.now)
+    execute_updates(role, global_state.now)
     cleanup(role, global_state.now)
 end
 
