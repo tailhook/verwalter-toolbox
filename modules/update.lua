@@ -295,7 +295,7 @@ local function next_step(state, _, idx, now, log)
         return {
             step="done",
             direction="forward",
-            start_ts=now,
+            start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
@@ -307,7 +307,7 @@ local function next_step(state, _, idx, now, log)
         return {
             step=state.pipeline[idx+1].name,
             direction="forward",
-            start_ts=now,
+            start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
@@ -319,11 +319,11 @@ end
 
 local function prev_step(state, _, idx, now, log)
     if idx == 1 then
-        log:debug("revert done")
+        log:change("revert done")
         return {
             step="done",
             direction="backward",
-            start_ts=now,
+            start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
@@ -335,7 +335,7 @@ local function prev_step(state, _, idx, now, log)
         return {
             step=state.pipeline[idx-1].name,
             direction="backward",
-            start_ts=now,
+            start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
@@ -452,6 +452,14 @@ local function internal_tick(state, actions, now, log)
         elseif button.update_action == 'skip' then
             log:change("skipping step", state.step)
             return next_step(state, step, step_idx, now, log)
+        elseif button.update_action == 'proceed' then
+            local mode = state.direction .. '_mode'
+            if step[mode] == 'manual' then
+                log:change("manual step proceeded", state.step)
+                return next_step(state, step, step_idx, now, log)
+            else
+                log:error("can't proceed on", state.step)
+            end
         elseif button.update_action == 'ack' then
             local mode = state.direction .. '_mode'
             if step[mode] == 'ack' then
@@ -487,7 +495,13 @@ local function internal_tick(state, actions, now, log)
         end
     end
 
-    local action = state.direction..'_'..step.forward_mode
+    local mode = step[state.direction..'_mode']
+    if mode == nil then
+        log:error("Step", state.step,
+            "mode", mode, "is unimplemented")
+        return nil
+    end
+    local action = state.direction..'_'..mode
 
     local fun = EXECUTORS[action]
     if fun == nil then
