@@ -108,6 +108,7 @@ end
 
 local function add_test_mode(stages, daemon, cfg)
     local stage = stages['test_mode']
+    local warmup = cfg.warmup_sec or DEFAULT_WARMUP
     if stage ~= nil then
         table.insert(stage.processes, daemon)
         -- predictable order, list is just few items, so is very quick
@@ -411,38 +412,90 @@ function EXECUTORS.backward_skip(state, step, idx, now, log)
 end
 
 local function internal_tick(state, actions, now, log)
-    for _, action in ipairs(actions) do
-        log:debug("unimplemented actions", repr.log_repr(action))
-    end
-    if state.direction == 'pause' then
-        if state.pause_ts - now > MAXIMUM_PAUSED then
-            state.direction = 'backward'
-            log:change("paused for too long, reverting")
-        else
-            return state
-        end
-    end
     if state.step == 'start' then
         return next_step(state, nil, 0, now, log)
     elseif state.step == 'done' then
         log:error("Done step should not be passed to the 'tick' function")
         return nil
     end
-    for idx, step in ipairs(state.pipeline) do
-        if step.name == state.step then
-            local action = state.direction..'_'..step.forward_mode
 
-            local fun = EXECUTORS[action]
-            if fun == nil then
-                log:error("Step", state.step,
-                    "action", action, "is unimplemented")
-                return nil
-            end
-            return fun(state, step, idx, now, log)
+    local step, step_idx
+    for idx, cstep in ipairs(state.pipeline) do
+        if cstep.name == state.step then
+            step = cstep
+            step_idx = idx
+            break
         end
     end
-    log:error("Step", state.step, "not found")
-    return nil
+    if step == nil then
+        log:error("Step", state.step, "not found")
+        return nil
+    end
+    for _, action in ipairs(actions) do
+        local button = action.button
+
+        if button.update_action == 'pause' then
+            log:change("pausing update")
+            state.pause_ts = now
+            state.change_ts = now
+            state.direction = 'pause'
+        elseif button.update_action == 'resume' then
+            log:change("resuming update")
+            state.pause_ts = nil
+            state.change_ts = now
+            state.direction = 'forward'
+        elseif button.update_action == 'revert' then
+            log:change("reverting update")
+            state.pause_ts = nil
+            state.change_ts = now
+            state.direction = 'backward'
+        elseif button.update_action == 'skip' then
+            log:change("skipping step", state.step)
+            return next_step(state, step, step_idx, now, log)
+        elseif button.update_action == 'ack' then
+            local mode = state.direction .. '_mode'
+            if step[mode] == 'ack' then
+                log:change("acked step", state.step)
+                return next_step(state, step, step_idx, now, log)
+            else
+                log:error("can't ack", state.step)
+            end
+        elseif button.update_action == 'error' then
+            local mode = state.direction .. '_mode'
+            if step[mode] == 'ack' then
+                log:change("error when acking step",
+                    state.step, "error:", button.error_messsage)
+                state.pause_ts = now
+                state.change_ts = now
+                state.direction = 'error'
+                state.error_message = button.error_message
+            else
+                log:error("can't ack with error on step", state.step)
+            end
+        else
+            log:error("wrong action", button.update_action,
+                "data", repr.log_repr(action))
+        end
+    end
+
+    if state.direction == 'pause' or state.direction == 'error' then
+        if state.pause_ts - now > MAXIMUM_PAUSED then
+            state.direction = 'backward'
+            log:change(state.direction, "for too long, reverting")
+        else
+            return state
+        end
+    end
+
+    local action = state.direction..'_'..step.forward_mode
+
+    local fun = EXECUTORS[action]
+    if fun == nil then
+        log:error("Step", state.step,
+            "action", action, "is unimplemented")
+        return nil
+    end
+    return fun(state, step, step_idx, now, log)
 end
 
 local function tick(input, actions, now, log)

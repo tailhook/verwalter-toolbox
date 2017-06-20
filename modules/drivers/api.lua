@@ -326,7 +326,7 @@ function ACTIONS.set_number_per_server(role, action, _, _)
     svc.number_per_server = button.number_per_server
 end
 
-function ACTIONS.update_action(role, action, _, now)
+function ACTIONS.update_action(role, action, _, _)
     local button = action.button
     local group = role.state.groups[button.group]
     if not group then
@@ -334,35 +334,8 @@ function ACTIONS.update_action(role, action, _, now)
         return
     end
     local log = role.log:sub(button.group)
-    if button.update_action == 'pause' then
-        if group.update == nil then
-            role.log:error("no update inprogress, can't pause")
-        else
-            role.log:change("pausing update")
-            group.update.pause_ts = now
-            group.update.change_ts = now
-            group.update.direction = 'pause'
-        end
-        return
-    elseif button.update_action == 'resume' then
-        if group.update == nil then
-            role.log:error("no update inprogress, can't resume")
-        else
-            role.log:change("resuming update")
-            group.update.pause_ts = nil
-            group.update.change_ts = now
-            group.update.direction = 'forward'
-        end
-        return
-    elseif button.update_action == 'revert' then
-        if group.update == nil then
-            role.log:error("no update inprogress, can't revert")
-        else
-            role.log:change("reverting update")
-            group.update.pause_ts = nil
-            group.update.change_ts = now
-            group.update.direction = 'backward'
-        end
+    if group.update == nil then
+        log:error("no update inprogress, can't pause")
         return
     end
     if role.update_actions == nil then
@@ -508,7 +481,7 @@ local function execute_updates(role, now)
             else
                 group.update = update.tick(
                     group.update,
-                    role.group_actions and role.group_actions[gname] or {},
+                    role.update_actions and role.update_actions[gname] or {},
                     now,
                     log)
             end
