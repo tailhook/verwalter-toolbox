@@ -98,6 +98,22 @@ local STATE = T.Dict {
     }},
 }
 
+local function calculate_pipeline(role, group_name, dest_ver)
+    local group = role.state.groups[group_name]
+    local services = {}
+    local ver = role.versions[dest_ver]
+    for service_name, service in pairs(group.services or {}) do
+        local vinfo = ver.daemons[service.service]
+        local info = func.copy(vinfo and vinfo.update) or {}
+        services[service_name] = info
+    end
+    local pipeline = update.derive_pipeline(services)
+    if not pipeline then
+        role.log:sub(group_name):error("no valid update pipeline")
+    end
+    return pipeline
+end
+
 local function check_actions(role, actions)
     local invalid_actions = {}
     local valid_actions = {}
@@ -283,7 +299,7 @@ function ACTIONS.start_update(role, action, _, now)
         log:error("no such version", repr.log_repr(button.to_version))
         return
     end
-    local pipeline = role.update_pipelines[button.group]
+    local pipeline = calculate_pipeline(role, button.group, button.to_version)
     if not pipeline then
         log:error("can't compute update pipeline")
         return
@@ -372,7 +388,7 @@ local function auto_update_versions(role, now)
         if group.auto_update and not group.update then
             local nver = role.descending_versions[1]
             if group.version ~= nver then
-                local pipeline = role.update_pipelines[gname]
+                local pipeline = calculate_pipeline(role, gname, nver)
                 if pipeline then
                     role.log:sub(gname):change("Starting automatic update:",
                         group.version, "-> ", nver)
@@ -459,26 +475,6 @@ local function cleanup(role, now)
     end
 end
 
-local function calculate_pipelines(role)
-    local update_pipelines = {}
-    for group_name, group in pairs(role.state.groups or {}) do
-        local services = {}
-        for service_name, service in pairs(group.services) do
-            local ver = role.versions[group.version]
-            local vinfo = ver.daemons[service.service]
-            local info = func.copy(vinfo and vinfo.update) or {}
-            services[service_name] = info
-        end
-        local pipeline = update.derive_pipeline(services)
-        if pipeline then
-            update_pipelines[group_name] = pipeline
-        else
-            role.log:sub(group_name):error("no valid update pipeline")
-        end
-    end
-    return update_pipelines
-end
-
 local function execute_updates(role, now)
     for gname, group in pairs(role.state.groups or {}) do
         if group.update then
@@ -493,6 +489,18 @@ local function execute_updates(role, now)
                     now,
                     log)
             end
+        end
+    end
+end
+
+local function populate_pipelines(role)
+    for _, ver in pairs(role.alive_versions or {}) do
+        local group_pipelines = {}
+        for gname, _ in pairs(role.state.groups or {}) do
+            group_pipelines[gname] = calculate_pipeline(role, gname, ver)
+        end
+        if func.count_keys(group_pipelines) > 0 then
+            role.versions[ver].group_pipelines = group_pipelines
         end
     end
 end
@@ -514,11 +522,11 @@ local function prepare(params)
     local state = merge_states(role, params.parents)
     role.state = state
 
-    role.update_pipelines = calculate_pipelines(role)
     execute_actions(role, role.actions, global_state.now)
     auto_update_versions(role, global_state.now)
     execute_updates(role, global_state.now)
     cleanup(role, global_state.now)
+    populate_pipelines(role)
 end
 
 return {
