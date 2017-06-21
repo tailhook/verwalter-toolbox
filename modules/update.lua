@@ -443,56 +443,60 @@ local function internal_tick(state, actions, now, log)
     end
     for _, action in ipairs(actions) do
         local button = action.button
-
-        if button.update_action == 'pause' then
-            log:change("pausing update")
-            state.pause_ts = now
-            state.change_ts = now
-            state.direction = 'pause'
-        elseif button.update_action == 'resume' then
-            log:change("resuming update")
-            state.pause_ts = nil
-            state.change_ts = now
-            state.direction = 'forward'
-        elseif button.update_action == 'revert' then
-            log:change("reverting update")
-            state.pause_ts = nil
-            state.change_ts = now
-            state.direction = 'backward'
-        elseif button.update_action == 'skip' then
-            log:change("skipping step", state.step)
-            return next_step(state, step, step_idx, now, log)
-        elseif button.update_action == 'proceed' then
-            local mode = state.direction .. '_mode'
-            if step[mode] == 'manual' then
-                log:change("manual step proceeded", state.step)
-                return next_step(state, step, step_idx, now, log)
-            else
-                log:error("can't proceed on", state.step)
-            end
-        elseif button.update_action == 'ack' then
-            local mode = state.direction .. '_mode'
-            if step[mode] == 'ack' then
-                log:change("acked step", state.step)
-                return next_step(state, step, step_idx, now, log)
-            else
-                log:error("can't ack", state.step)
-            end
-        elseif button.update_action == 'error' then
-            local mode = state.direction .. '_mode'
-            if step[mode] == 'ack' then
-                log:change("error when acking step",
-                    state.step, "error:", button.error_messsage)
+        if button.step == nil or button.step == state.step then
+            if button.update_action == 'pause' then
+                log:change("pausing update")
                 state.pause_ts = now
                 state.change_ts = now
-                state.direction = 'error'
-                state.error_message = button.error_message
+                state.direction = 'pause'
+            elseif button.update_action == 'resume' then
+                log:change("resuming update")
+                state.pause_ts = nil
+                state.change_ts = now
+                state.direction = 'forward'
+            elseif button.update_action == 'revert' then
+                log:change("reverting update")
+                state.pause_ts = nil
+                state.change_ts = now
+                state.direction = 'backward'
+            elseif button.update_action == 'skip' then
+                log:change("skipping step", state.step)
+                return next_step(state, step, step_idx, now, log)
+            elseif button.update_action == 'proceed' then
+                local mode = state.direction .. '_mode'
+                if step[mode] == 'manual' then
+                    log:change("manual step proceeded", state.step)
+                    return next_step(state, step, step_idx, now, log)
+                else
+                    log:error("can't proceed on", state.step)
+                end
+            elseif button.update_action == 'ack' then
+                local mode = state.direction .. '_mode'
+                if step[mode] == 'ack' then
+                    log:change("acked step", state.step)
+                    return next_step(state, step, step_idx, now, log)
+                else
+                    log:error("can't ack", state.step)
+                end
+            elseif button.update_action == 'error' then
+                local mode = state.direction .. '_mode'
+                if step[mode] == 'ack' then
+                    log:change("error when acking step",
+                        state.step, "error:", button.error_messsage)
+                    state.pause_ts = now
+                    state.change_ts = now
+                    state.direction = 'error'
+                    state.error_message = button.error_message
+                else
+                    log:error("can't ack with error on step", state.step)
+                end
             else
-                log:error("can't ack with error on step", state.step)
+                log:error("wrong action", button.update_action,
+                    "data", repr.log_repr(action))
             end
         else
-            log:error("wrong action", button.update_action,
-                "data", repr.log_repr(action))
+            log:error("executing action for step", button.step,
+                      "at step", state.step)
         end
     end
 

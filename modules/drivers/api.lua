@@ -77,6 +77,7 @@ local ACTION = T.Dict {
             group=T.String {},
             update_action=T.Enum { "pause", "revert", "resume",
                                    "skip", "proceed", "ack", "error" },
+            [T.Key { "step", optional=true }]=T.String {},
             [T.Key { "error_message", optional=true }]=T.String {},
         },
     },
