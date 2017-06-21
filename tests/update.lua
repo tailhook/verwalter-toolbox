@@ -9,7 +9,7 @@ local mocks = require("tests/mocks")
 describe("updates: typical setup", function()
     local processes = {
         db_migrate={
-            mode="run_with_ack",
+            mode="run-with-ack",
             before={"test_mode"},
         },
         celery={
@@ -176,7 +176,7 @@ describe("updates: stages", function()
 
     test("command", function()
         local ok, cfg, _ = update.validate_config({
-            ccc={mode="run_with_ack", before={"test_mode"}},
+            ccc={mode="run-with-ack", before={"test_mode"}},
             ddd={restart="smooth", warmup_sec=8, test_mode_percent=2},
         })
         assert(ok)
@@ -206,7 +206,7 @@ describe("updates: stages", function()
     end)
     test("transient_test_mode", function()
         local ok, cfg, _ = update.validate_config({
-            ccc={mode="run_with_ack", before={"test_mode"}},
+            ccc={mode="run-with-ack", before={"test_mode"}},
             ddd={restart="smooth", warmup_sec=8},
         })
         assert(ok)

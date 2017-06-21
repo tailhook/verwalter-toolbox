@@ -10,7 +10,7 @@ local EXECUTORS = {}
 
 local CONFIG = T.Map { T.String {}, T.Or {
     T.Dict {
-        [T.Key { "mode" }]=T.Or { T.Atom { "run_with_ack" } },
+        [T.Key { "mode" }]=T.Or { T.Atom { "run-with-ack" } },
         [T.Key { "duration", default=0 }]=T.Number {},
         [T.Key { "before", optional=true }]=T.List { T.String {} },
         [T.Key { "after", optional=true }]=T.List { T.String {} },
@@ -169,7 +169,7 @@ local function add_smooth_restart(stages, daemon, cfg)
 end
 
 local function add_command(stages, cname, cfg)
-    if cfg.mode == 'run_with_ack' then
+    if cfg.mode == 'run-with-ack' then
         local name = 'cmd_'..cname
         stages[name] = {
             name=name,
