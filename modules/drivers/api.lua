@@ -483,6 +483,9 @@ local function execute_updates(role, now)
             if group.update.step == 'done' then
                 group.version = group.update.target_ver
                 group.update = nil
+            elseif group.update.step == 'revert_done' then
+                group.version = group.update.source_ver
+                group.update = nil
             else
                 group.update = update.tick(
                     group.update,

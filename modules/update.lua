@@ -324,7 +324,7 @@ local function prev_step(state, _, idx, now, log)
     if idx == 1 then
         log:change("revert done")
         return {
-            step="done",
+            step="revert_done",
             direction="backward",
             step_ts=now,
             change_ts=now,
@@ -424,7 +424,7 @@ end
 local function internal_tick(state, actions, now, log)
     if state.step == 'start' then
         return next_step(state, nil, 0, now, log)
-    elseif state.step == 'done' then
+    elseif state.step == 'done' or state.step == 'revert_done' then
         log:error("Done step should not be passed to the 'tick' function")
         return nil
     end
