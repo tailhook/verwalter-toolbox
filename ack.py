@@ -1,17 +1,25 @@
-from urllib import request
+from __future__ import print_function
+
+from contextlib import closing
 from time import sleep
 import argparse
 import json
 import sys
 
+try:
+    from urllib import request
+    URLError = request.URLError
+except ImportError:
+    import urllib2 as request
+    URLError = IOError
+
 
 def vw_request(url, data=None):
     req = request.Request(url,
-        method='GET' if data is None else 'POST',
         data=data and json.dumps(data).encode('utf-8'))
 
     print("Request:", url)
-    with request.urlopen(req) as req:
+    with closing(request.urlopen(req)) as req:
         if req.getcode() != 200:
             raise ValueError("Status code is {}"
                              .format(status.getcode()))
@@ -26,7 +34,7 @@ def check_pending(prefix, action_id):
                 return True
             else:
                 sleep(1)
-        except (ValueError, request.URLError) as e:
+        except (ValueError, URLError) as e:
             print("Error checking pending actions", e, file=sys.stderr)
             return False
 
@@ -51,7 +59,7 @@ def main():
         try:
             data = vw_request(url + '/v1/status')
             leader_host = data['leader']['name']
-        except (KeyError, ValueError, request.URLError) as e:
+        except (KeyError, ValueError, URLError) as e:
             print("Error getting leader", e, file=sys.stderr)
             sleep(1)
             continue
@@ -83,7 +91,7 @@ def main():
         try:
             response = vw_request(url + '/v1/action', data=action)
             action_id = response["registered"]
-        except (KeyError, ValueError, request.URLError) as e:
+        except (KeyError, ValueError, URLError) as e:
             print("Error executing action", e, file=sys.stderr)
             sleep(1)
             continue

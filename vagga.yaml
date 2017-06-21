@@ -53,6 +53,11 @@ containers:
     - !Alpine v3.6
     - !Install [python3]
 
+  ack-py2:
+    setup:
+    - !Alpine v3.6
+    - !Install [python2]
+
 
 commands:
 
