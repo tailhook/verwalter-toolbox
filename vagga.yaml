@@ -48,6 +48,11 @@ containers:
     - !Sh |
         chmod +x /usr/bin/fake-cantal /usr/bin/fetch-runtime
 
+  ack:
+    setup:
+    - !Alpine v3.6
+    - !Install [python3]
+
 
 commands:
 
