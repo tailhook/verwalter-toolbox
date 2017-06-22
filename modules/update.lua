@@ -563,10 +563,102 @@ local function start(source, target, pipeline, auto, now)
     }
 end
 
+local function current(state, config)
+    local step, step_idx
+    if state.step == "start" or state.step == "revert_done" then
+        step_idx = 0
+        step = {processes={}}
+    elseif state.step == "done" then
+        step_idx = #state.pipeline+1
+        step = {processes={}}
+    else
+        for idx, cstep in ipairs(state.pipeline) do
+            if cstep.name == state.step then
+                step = cstep
+                step_idx = idx
+                break
+            end
+        end
+    end
+
+    if step == nil then
+        error("No step "..state.step.." found")
+    end
+
+    local processes = {}
+    -- already upgraded processes
+    if step_idx > 1 then
+        for i = 1, step_idx-1 do
+            local cstep = state.pipeline[i]
+            for _, svc in ipairs(cstep.processes) do
+                local cfg = config[svc]
+                if cfg.mode == nil then  -- and not commands
+                    processes[svc]={[state.target_ver] = 100}
+                end
+            end
+        end
+    end
+    -- not yet reached
+    if step_idx+1 <= #state.pipeline then
+        for i = step_idx+1, #state.pipeline do
+            local cstep = state.pipeline[i]
+            for _, svc in ipairs(cstep.processes) do
+                local cfg = config[svc]
+                if cfg.mode == nil then  -- and not commands
+                    processes[svc]={[state.source_ver] = 100}
+                end
+            end
+        end
+    end
+    -- currently upgrading
+    if step_idx <= #state.pipeline then
+        if step.substeps then
+            local percent = math.floor(
+                (state.substep or 0) / step.substeps * 100)
+            for _, svc in ipairs(step.processes) do
+                local cfg = config[svc]
+                if cfg.restart == 'smooth' then
+                    local mypercent = percent
+                    if cfg.test_mode_percent then
+                        mypercent = math.max(percent, cfg.test_mode_percent)
+                    end
+                    processes[svc]={
+                        [state.source_ver] = 100 - mypercent,
+                        [state.target_ver] = mypercent,
+                    }
+                else
+                    -- new version of both quick-restart processes and
+                    -- ad-hoc migration commands
+                    processes[svc]={
+                        [state.target_ver] = 100,
+                    }
+                end
+            end
+        elseif step.name == 'test_mode' then
+            for _, svc in ipairs(step.processes) do
+                local cfg = config[svc]
+                if cfg.test_mode_percent then
+                    processes[svc]={
+                        [state.source_ver] = 100 - cfg.test_mode_percent,
+                        [state.target_ver] = cfg.test_mode_percent,
+                    }
+                end
+            end
+        else
+            for _, svc in ipairs(step.processes) do
+                processes[svc]={[state.target_ver] = 100}
+            end
+        end
+    end
+
+    return processes
+end
+
 return {
     validate_config=validate_config,
     derive_pipeline=derive_pipeline,
     tick=tick,
     start=start,
+    current=current,
     STATE=STATE,
 }

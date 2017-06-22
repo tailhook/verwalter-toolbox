@@ -304,3 +304,70 @@ describe("updates: ticks", function()
         }, nstate2)
     end)
 end)
+
+describe("updates: current", function()
+    local SMOOTH = {
+        {name="test_mode",
+            processes={"zzz"},
+            forward_mode="manual",
+            forward_time=8,
+            backward_mode="time",
+            backward_time=8},
+        {name="smooth_restart",
+            processes={"yyy", "zzz"},
+            forward_mode="smooth",
+            forward_time=80,
+            backward_mode="smooth",
+            backward_time=80,
+            substeps=10,
+        },
+    }
+    local CONFIG = {
+        yyy={restart="smooth", warmup_sec=5 },
+        zzz={restart="smooth", warmup_sec=8, test_mode_percent=2},
+    }
+    local function step(name, substep)
+        return {
+            source_ver='v1',
+            target_ver='v2',
+            step=name,
+            substep=substep,
+            direction="forward",
+            start_ts=1,
+            step_ts=1,
+            change_ts=1,
+            auto=false,
+            pipeline=SMOOTH,
+        }
+    end
+    test("quick restart", function()
+        assert.are.same({
+            zzz={v1=98, v2=2},
+            yyy={v1=100, v2=nil},
+        }, update.current(step("test_mode"), CONFIG))
+        assert.are.same({
+            zzz={v1=98, v2=2},
+            yyy={v1=100, v2=0},
+        }, update.current(step("smooth_restart", 0), CONFIG))
+        assert.are.same({
+            zzz={v1=70, v2=30},
+            yyy={v1=70, v2=30},
+        }, update.current(step("smooth_restart", 3), CONFIG))
+        assert.are.same({
+            zzz={v1=0, v2=100},
+            yyy={v1=0, v2=100},
+        }, update.current(step("smooth_restart", 10), CONFIG))
+        assert.are.same({
+            zzz={v1=nil, v2=100},
+            yyy={v1=nil, v2=100},
+        }, update.current(step("done"), CONFIG))
+        assert.are.same({
+            zzz={v1=100, v2=nil},
+            yyy={v1=100, v2=nil},
+        }, update.current(step("revert_done"), CONFIG))
+        assert.are.same({
+            zzz={v1=100, v2=nil},
+            yyy={v1=100, v2=nil},
+        }, update.current(step("start"), CONFIG))
+    end)
+end)
