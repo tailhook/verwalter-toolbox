@@ -54,6 +54,7 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {{
             name="quick_restart",
+            kind="restart",
             processes={"x"},
             forward_mode="time",
             forward_time=5,
@@ -71,6 +72,7 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {{
             name="quick_restart",
+            kind="restart",
             processes={"one", "two"},
             forward_mode="time",
             forward_time=7,
@@ -86,12 +88,15 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {
             {name="test_mode",
+                kind="test_mode",
                 processes={"yyy"},
+                test_mode_percent={yyy=1},
                 forward_mode="manual",
                 forward_time=5,
                 backward_mode="time",
                 backward_time=5},
             {name="quick_restart",
+                kind="restart",
                 processes={"yyy"},
                 forward_mode="time",
                 forward_time=5,
@@ -110,12 +115,15 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {
             {name="test_mode",
+                kind="test_mode",
                 processes={"yyy", "zzz"},
+                test_mode_percent={yyy=1, zzz=2},
                 forward_mode="manual",
                 forward_time=8,
                 backward_mode="time",
                 backward_time=8},
             {name="quick_restart",
+                kind="restart",
                 processes={"yyy", "zzz"},
                 forward_mode="time",
                 forward_time=8,
@@ -134,12 +142,15 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {
             {name="test_mode",
+                kind="test_mode",
                 processes={"zzz"},
+                test_mode_percent={zzz=2},
                 forward_mode="manual",
                 forward_time=8,
                 backward_mode="time",
                 backward_time=8},
             {name="quick_restart",
+                kind="restart",
                 processes={"yyy", "zzz"},
                 forward_mode="time",
                 forward_time=8,
@@ -158,12 +169,15 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {
             {name="test_mode",
+                kind="test_mode",
                 processes={"zzz"},
+                test_mode_percent={zzz=2},
                 forward_mode="manual",
                 forward_time=8,
                 backward_mode="time",
                 backward_time=8},
             {name="smooth_restart",
+                kind="smooth",
                 processes={"yyy", "zzz"},
                 forward_mode="smooth",
                 forward_time=80,
@@ -183,18 +197,22 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {
             {name="cmd_ccc",
+                kind="run_once",
                 processes={"ccc"},
                 forward_mode="ack",
                 forward_time=0,
                 backward_mode="skip",
                 backward_time=0},
             {name="test_mode",
+                kind="test_mode",
                 processes={"ddd"},
+                test_mode_percent={ddd=2},
                 forward_mode="manual",
                 forward_time=8,
                 backward_mode="time",
                 backward_time=8},
             {name="smooth_restart",
+                kind="smooth",
                 processes={"ddd"},
                 forward_mode="smooth",
                 forward_time=80,
@@ -204,7 +222,7 @@ describe("updates: stages", function()
             },
         })
     end)
-    test("transient_test_mode", function()
+    test("invisible test_mode dependency", function()
         local ok, cfg, _ = update.validate_config({
             ccc={mode="run-with-ack", before={"test_mode"}},
             ddd={restart="smooth", warmup_sec=8},
@@ -213,12 +231,14 @@ describe("updates: stages", function()
         local stages = update.derive_pipeline(cfg)
         assert.is.same(stages, {
             {name="cmd_ccc",
+                kind="run_once",
                 processes={"ccc"},
                 forward_mode="ack",
                 forward_time=0,
                 backward_mode="skip",
                 backward_time=0},
             {name="smooth_restart",
+                kind="smooth",
                 processes={"ddd"},
                 forward_mode="smooth",
                 forward_time=80,
@@ -233,6 +253,7 @@ end)
 describe("updates: ticks", function()
     local SIMPLE = {{
         name="quick_restart",
+        kind="restart",
         processes={"x"},
         forward_mode="time",
         forward_time=5,
@@ -308,12 +329,15 @@ end)
 describe("updates: current", function()
     local SMOOTH = {
         {name="test_mode",
+            kind="test_mode",
             processes={"zzz"},
+            test_mode_percent={zzz=2},
             forward_mode="manual",
             forward_time=8,
             backward_mode="time",
             backward_time=8},
         {name="smooth_restart",
+            kind="smooth",
             processes={"yyy", "zzz"},
             forward_mode="smooth",
             forward_time=80,
@@ -321,10 +345,6 @@ describe("updates: current", function()
             backward_time=80,
             substeps=10,
         },
-    }
-    local CONFIG = {
-        yyy={restart="smooth", warmup_sec=5 },
-        zzz={restart="smooth", warmup_sec=8, test_mode_percent=2},
     }
     local function step(name, substep)
         return {
@@ -344,31 +364,31 @@ describe("updates: current", function()
         assert.are.same({
             zzz={v1=98, v2=2},
             yyy={v1=100, v2=nil},
-        }, update.current(step("test_mode"), CONFIG))
+        }, update.current(step("test_mode")))
         assert.are.same({
             zzz={v1=98, v2=2},
             yyy={v1=100, v2=0},
-        }, update.current(step("smooth_restart", 0), CONFIG))
+        }, update.current(step("smooth_restart", 0)))
         assert.are.same({
             zzz={v1=70, v2=30},
             yyy={v1=70, v2=30},
-        }, update.current(step("smooth_restart", 3), CONFIG))
+        }, update.current(step("smooth_restart", 3)))
         assert.are.same({
             zzz={v1=0, v2=100},
             yyy={v1=0, v2=100},
-        }, update.current(step("smooth_restart", 10), CONFIG))
+        }, update.current(step("smooth_restart", 10)))
         assert.are.same({
             zzz={v1=nil, v2=100},
             yyy={v1=nil, v2=100},
-        }, update.current(step("done"), CONFIG))
+        }, update.current(step("done")))
         assert.are.same({
             zzz={v1=100, v2=nil},
             yyy={v1=100, v2=nil},
-        }, update.current(step("revert_done"), CONFIG))
+        }, update.current(step("revert_done")))
         assert.are.same({
             zzz={v1=100, v2=nil},
             yyy={v1=100, v2=nil},
-        }, update.current(step("start"), CONFIG))
+        }, update.current(step("start")))
     end)
 end)
 

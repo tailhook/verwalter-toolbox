@@ -32,16 +32,17 @@ local CONFIG = T.Map { T.String {}, T.Or {
 
 local PIPELINE = T.List { T.Dict {
     name=T.String {},
-    [T.Key { "forward_mode" }]=
-        T.Or { T.Atom { "manual" }, T.Atom { "time" }, T.Atom { "smooth" },
-               T.Atom { "ack" }},
+    [T.Key { "kind" }]=T.Enum {"run_once", "smooth", "restart", "test_mode"},
+    [T.Key { "forward_mode" }]=T.Enum {"manual" , "time", "smooth", "ack" },
     [T.Key { "forward_time", default=5 }]=T.Number {},
-    [T.Key { "backward_mode" }]=
-        T.Or { T.Atom { "manual" }, T.Atom { "time" }, T.Atom { "smooth" },
-               T.Atom { "skip" } },
+    [T.Key { "backward_mode" }]=T.Enum { "manual", "time", "smooth", "skip" },
     [T.Key { "backward_time", default=5 }]=T.Number {},
     [T.Key { "processes", default={} }]=T.List { T.String {} },
+    -- smooth
     [T.Key { "substeps", optional=true }]=T.Number {},
+    -- test_mode
+    [T.Key { "test_mode_percent", optional=true }]=
+        T.Map { T.String {}, T.Number {}},
 }}
 
 local STATE = T.Dict {
@@ -96,6 +97,7 @@ local function add_quick_restart(stages, daemon, cfg)
     else
         stages['quick_restart'] = {
             name="quick_restart",
+            kind="restart",
             forward_mode="time",
             forward_time=warmup,
             backward_mode="time",
@@ -120,14 +122,17 @@ local function add_test_mode(stages, daemon, cfg)
         if stage.backward_time < warmup then
             stage.backward_time = warmup
         end
+        stage.test_mode_percent[daemon] = cfg.test_mode_percent
     else
         stages['test_mode'] = {
             name="test_mode",
+            kind="test_mode",
             forward_mode="manual",
             forward_time=warmup,
             backward_mode="time",
             backward_time=warmup,
             processes={daemon},
+            test_mode_percent={[daemon]=cfg.test_mode_percent},
             before=expand_before(cfg.before,
                         -- implicit before
                         "quick_restart", "smooth_restart"),
@@ -156,6 +161,7 @@ local function add_smooth_restart(stages, daemon, cfg)
     else
         stages['smooth_restart'] = {
             name="smooth_restart",
+            kind="smooth",
             forward_mode="smooth",
             forward_time=warmup*substeps,
             backward_mode="smooth",
@@ -173,6 +179,7 @@ local function add_command(stages, cname, cfg)
         local name = 'cmd_'..cname
         stages[name] = {
             name=name,
+            kind="run_once",
             forward_mode="ack",
             forward_time=cfg.duration,
             backward_mode="skip",
@@ -563,7 +570,7 @@ local function start(source, target, pipeline, auto, now)
     }
 end
 
-local function current(state, config)
+local function current(state)
     local step, step_idx
     if state.step == "start" or state.step == "revert_done" then
         step_idx = 0
@@ -586,14 +593,22 @@ local function current(state, config)
     end
 
     local processes = {}
+    local test_mode_percents = {}
     -- already upgraded processes
     if step_idx > 1 then
         for i = 1, step_idx-1 do
             local cstep = state.pipeline[i]
             for _, svc in ipairs(cstep.processes) do
-                local cfg = config[svc]
-                if cfg.mode == nil then  -- and not commands
+                if cstep.kind == "restart" or cstep.kind == "smooth" then
                     processes[svc]={[state.target_ver] = 100}
+                elseif cstep.kind == "test_mode" then
+                    for k, v in pairs(cstep.test_mode_percent or {}) do
+                        test_mode_percents[k] = v
+                        processes[k]={
+                            [state.source_ver] = 100 - v,
+                            [state.target_ver] = v,
+                        }
+                    end
                 end
             end
         end
@@ -602,9 +617,8 @@ local function current(state, config)
     if step_idx+1 <= #state.pipeline then
         for i = step_idx+1, #state.pipeline do
             local cstep = state.pipeline[i]
-            for _, svc in ipairs(cstep.processes) do
-                local cfg = config[svc]
-                if cfg.mode == nil then  -- and not commands
+            if cstep.kind == 'restart' or cstep.kind == 'smooth' then
+                for _, svc in ipairs(cstep.processes) do
                     processes[svc]={[state.source_ver] = 100}
                 end
             end
@@ -616,33 +630,21 @@ local function current(state, config)
             local percent = math.floor(
                 (state.substep or 0) / step.substeps * 100)
             for _, svc in ipairs(step.processes) do
-                local cfg = config[svc]
-                if cfg.restart == 'smooth' then
-                    local mypercent = percent
-                    if cfg.test_mode_percent then
-                        mypercent = math.max(percent, cfg.test_mode_percent)
-                    end
-                    processes[svc]={
-                        [state.source_ver] = 100 - mypercent,
-                        [state.target_ver] = mypercent,
-                    }
-                else
-                    -- new version of both quick-restart processes and
-                    -- ad-hoc migration commands
-                    processes[svc]={
-                        [state.target_ver] = 100,
-                    }
+                local mypercent = percent
+                if test_mode_percents[svc] then
+                    mypercent = math.max(percent, test_mode_percents[svc])
                 end
+                processes[svc]={
+                    [state.source_ver] = 100 - mypercent,
+                    [state.target_ver] = mypercent,
+                }
             end
-        elseif step.name == 'test_mode' then
-            for _, svc in ipairs(step.processes) do
-                local cfg = config[svc]
-                if cfg.test_mode_percent then
-                    processes[svc]={
-                        [state.source_ver] = 100 - cfg.test_mode_percent,
-                        [state.target_ver] = cfg.test_mode_percent,
-                    }
-                end
+        elseif step.kind == 'test_mode' then
+            for svc, perc in pairs(step.test_mode_percent) do
+                processes[svc]={
+                    [state.source_ver]=100 - perc,
+                    [state.target_ver]=perc,
+                }
             end
         else
             for _, svc in ipairs(step.processes) do
