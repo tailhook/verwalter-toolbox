@@ -654,11 +654,47 @@ local function current(state, config)
     return processes
 end
 
+local function spread(items, num, percentages, seed)
+    local result = {}
+    local base_nums = {}
+    local base_sum = 0
+    local want_nums = {}
+    local want_sum = 0
+    for i = 1, #percentages-1 do
+        local base = math.floor(num*percentages[i]/100)
+        base_nums[i] = base
+        base_sum = base_sum + base
+        local want = math.floor(num*#items*percentages[i]/100)
+        want_nums[i] = want
+        want_sum = want_sum + want
+    end
+    base_nums[#percentages] = num - base_sum
+    want_nums[#percentages] = num*#items - want_sum
+    for _, item in pairs(items) do
+        result[item] = func.copy(base_nums)
+    end
+    if base_sum*#items < want_sum then
+        local off = seed
+        for i = 1, #percentages-1 do
+            local diff = want_nums[i] - base_nums[i]*#items
+            -- not sure this works well for #percentages > 2
+            for j = 0, diff-1 do
+                local item = items[((off + j) % #items) + 1]
+                result[item][i] = result[item][i] + 1
+                result[item][#percentages] = result[item][#percentages] - 1
+            end
+            off = off + diff
+        end
+    end
+    return result
+end
+
 return {
     validate_config=validate_config,
     derive_pipeline=derive_pipeline,
     tick=tick,
     start=start,
     current=current,
+    spread=spread,
     STATE=STATE,
 }

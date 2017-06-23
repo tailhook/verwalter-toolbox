@@ -371,3 +371,26 @@ describe("updates: current", function()
         }, update.current(step("start"), CONFIG))
     end)
 end)
+
+describe("updates: spread", function()
+    test("0/100", function()
+        assert.are.same(update.spread({'a', 'b', 'c'}, 7, {0, 100}, 0),
+            {a={0, 7}, b={0, 7}, c={0, 7}})
+    end)
+    test("100/0", function()
+        assert.are.same(update.spread({'a', 'b', 'c'}, 7, {100, 0}, 0),
+            {a={7, 0}, b={7, 0}, c={7, 0}})
+    end)
+    test("70/30", function()
+        assert.are.same(update.spread({'a', 'b', 'c'}, 7, {70, 30}, 0),
+            {a={5, 2}, b={5, 2}, c={4, 3}})
+    end)
+    test("30/70", function()
+        assert.are.same(update.spread({'a', 'b', 'c'}, 7, {30, 70}, 0),
+            {a={2, 5}, b={2, 5}, c={2, 5}})
+    end)
+    test("70/30 + seed", function()
+        assert.are.same(update.spread({'a', 'b', 'c'}, 7, {70, 30}, 2),
+            {a={5, 2}, b={4, 3}, c={5, 2}})
+    end)
+end)
