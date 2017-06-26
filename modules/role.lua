@@ -97,6 +97,7 @@ local function from_state(params)
             global_state=state,
             actions=actions[role_name] or {},
             parents=states[role_name] or {},
+            hooks=params.hooks,
         }
 
         return role

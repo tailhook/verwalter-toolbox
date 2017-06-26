@@ -48,7 +48,9 @@ local PIPELINE = T.List { T.Dict {
 local STATE = T.Dict {
     pipeline=PIPELINE,
     source_ver=T.String {},
+    source_extra=T.Dict {allow_extra=true},
     target_ver=T.String {},
+    target_extra=T.Dict {allow_extra=true},
     step=T.String {},
     direction=T.Enum {"forward", "backward", "pause"},
     start_ts=T.Number {},
@@ -306,7 +308,9 @@ local function next_step(state, _, idx, now, log)
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
+            source_extra=state.source_extra,
             target_ver=state.target_ver,
+            target_extra=state.target_extra,
             start_ts=state.start_ts,
             auto=state.auto,
             pipeline=state.pipeline
@@ -320,7 +324,9 @@ local function next_step(state, _, idx, now, log)
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
+            source_extra=state.source_extra,
             target_ver=state.target_ver,
+            target_extra=state.target_extra,
             auto=state.auto,
             pipeline=state.pipeline
         }
@@ -336,7 +342,9 @@ local function prev_step(state, _, idx, now, log)
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
+            source_extra=state.source_extra,
             target_ver=state.target_ver,
+            target_extra=state.target_extra,
             start_ts=state.start_ts,
             auto=state.auto,
             pipeline=state.pipeline
@@ -349,7 +357,9 @@ local function prev_step(state, _, idx, now, log)
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
+            source_extra=state.source_extra,
             target_ver=state.target_ver,
+            target_extra=state.target_extra,
             start_ts=state.start_ts,
             auto=state.auto,
             pipeline=state.pipeline
@@ -559,7 +569,9 @@ end
 local function start(source, target, pipeline, auto, now)
     return {
         source_ver=source,
+        source_extra={},
         target_ver=target,
+        target_extra={},
         step="start",
         direction="forward",
         start_ts=now,
@@ -628,7 +640,7 @@ local function current(state)
     if step_idx <= #state.pipeline then
         if step.substeps then
             local percent = math.floor(
-                (state.substep or 0) / step.substeps * 100)
+                (state.smooth_step or 0) / step.substeps * 100)
             for _, svc in ipairs(step.processes) do
                 local mypercent = percent
                 if test_mode_percents[svc] then

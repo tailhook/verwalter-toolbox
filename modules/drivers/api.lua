@@ -96,6 +96,7 @@ local STATE = T.Dict {
             number_per_server=T.Number {},
             variables=T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
         }},
+        [T.Key { "extra", optional=true }]=T.Dict {allow_extra=true},
     }},
 }
 
@@ -476,14 +477,18 @@ local function cleanup(role, now)
     end
 end
 
-local function execute_updates(role, now)
+local function execute_updates(role, hooks, now)
     for gname, group in pairs(role.state.groups or {}) do
         if group.update then
             local log = role.log:sub(gname)
             if group.update.step == 'done' then
+                local hook = hooks and hooks.update_done
+                hook(role, gname, group)
                 group.version = group.update.target_ver
                 group.update = nil
             elseif group.update.step == 'revert_done' then
+                local hook = hooks and hooks.revert_done
+                hook(role, gname, group)
                 group.version = group.update.source_ver
                 group.update = nil
             else
@@ -528,7 +533,7 @@ local function prepare(params)
 
     execute_actions(role, role.actions, global_state.now)
     auto_update_versions(role, global_state.now)
-    execute_updates(role, global_state.now)
+    execute_updates(role, params.hooks, global_state.now)
     cleanup(role, global_state.now)
     populate_pipelines(role)
 end

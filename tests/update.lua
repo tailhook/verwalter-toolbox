@@ -264,7 +264,9 @@ describe("updates: ticks", function()
         local logger = mocks.Logger("role")
         local nstate = update.tick({
             source_ver='v1',
+            source_extra={},
             target_ver='v2',
+            target_extra={},
             step="start",
             direction="forward",
             start_ts=1,
@@ -275,7 +277,9 @@ describe("updates: ticks", function()
         }, {}, 100, logger)
         assert.is.same({
             source_ver='v1',
+            source_extra={},
             target_ver='v2',
+            target_extra={},
             step='quick_restart',
             direction='forward',
             change_ts=100,
@@ -289,7 +293,9 @@ describe("updates: ticks", function()
         local logger = mocks.Logger("role")
         local step = {
             source_ver='v1',
+            source_extra={},
             target_ver='v2',
+            target_extra={},
             step="quick_restart",
             direction="forward",
             start_ts=1,
@@ -302,7 +308,9 @@ describe("updates: ticks", function()
         local nstate = update.tick(step, {}, 2, logger)
         assert.is.same({
             source_ver='v1',
+            source_extra={},
             target_ver='v2',
+            target_extra={},
             step='quick_restart',
             direction='forward',
             change_ts=1,
@@ -314,7 +322,9 @@ describe("updates: ticks", function()
         local nstate2 = update.tick(step, {}, 10, logger)
         assert.is.same({
             source_ver='v1',
+            source_extra={},
             target_ver='v2',
+            target_extra={},
             step='done',
             direction='forward',
             change_ts=10,
@@ -349,9 +359,11 @@ describe("updates: current", function()
     local function step(name, substep)
         return {
             source_ver='v1',
+            source_extra={},
             target_ver='v2',
+            target_extra={},
             step=name,
-            substep=substep,
+            smooth_step=substep,
             direction="forward",
             start_ts=1,
             step_ts=1,
