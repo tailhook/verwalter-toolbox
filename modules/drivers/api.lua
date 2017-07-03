@@ -27,8 +27,8 @@ local ACTION = T.Dict {
             service=T.String {},
             servers=T.List { T.String {} },
             number_per_server=T.Number {},
-            variables=T.Map { T.String {},
-                              T.Or { T.String {}, T.Number {} } },
+            [T.Key { "variables", optional=true }]=
+                T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
         },
         enable_auto_update=T.Dict {
             action=T.Atom { "enable_auto_update" },
@@ -94,7 +94,8 @@ local STATE = T.Dict {
             service=T.String {},
             servers=T.List { T.String {} },
             number_per_server=T.Number {},
-            variables=T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
+            [T.Key { "variables", optional=true }]=
+                T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
         }},
         [T.Key { "extra", optional=true }]=T.Dict {allow_extra=true},
     }},
@@ -229,7 +230,7 @@ function ACTIONS.add_daemon(role, action, _, _)
         service=button.service,
         servers=button.servers,
         number_per_server=button.number_per_server,
-        variables=button.variables,
+        variables=func.dict_or_nil(button.variables),
     }
 end
 
@@ -512,9 +513,7 @@ local function populate_pipelines(role)
         for gname, _ in pairs(role.state.groups or {}) do
             group_pipelines[gname] = calculate_pipeline(role, gname, ver)
         end
-        if func.count_keys(group_pipelines) > 0 then
-            role.versions[ver].group_pipelines = group_pipelines
-        end
+        role.versions[ver].group_pipelines = func.dict_or_nil(group_pipelines)
     end
 end
 
@@ -540,6 +539,9 @@ local function prepare(params)
     execute_updates(role, params.hooks, global_state.now)
     cleanup(role, global_state.now)
     populate_pipelines(role)
+    if func.empty_dict(role.state.groups) then
+        role.state.groups = nil  -- empty table is JSONed as list not dict :(
+    end
 end
 
 return {

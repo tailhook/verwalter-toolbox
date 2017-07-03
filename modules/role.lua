@@ -22,7 +22,7 @@ function _Role:output()
         version_info[ver] = self.versions[ver] or {daemons={}}
     end
     return {
-        state=self.state,
+        state=func.dict_or_nil(self.state),
         role={
             frontend={kind='api'},
             versions=versions,
