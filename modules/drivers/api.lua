@@ -483,12 +483,16 @@ local function execute_updates(role, hooks, now)
             local log = role.log:sub(gname)
             if group.update.step == 'done' then
                 local hook = hooks and hooks.update_done
-                hook(role, gname, group)
+                if hook then
+                    hook(role, gname, group)
+                end
                 group.version = group.update.target_ver
                 group.update = nil
             elseif group.update.step == 'revert_done' then
                 local hook = hooks and hooks.revert_done
-                hook(role, gname, group)
+                if hook then
+                    hook(role, gname, group)
+                end
                 group.version = group.update.source_ver
                 group.update = nil
             else
