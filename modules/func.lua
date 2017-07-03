@@ -69,6 +69,10 @@ local function count_keys(dict)
     return res
 end
 
+local function empty_dict(dict)
+    return next(dict, nil) == nil
+end
+
 local function keys(dict)
     local res = {}
     for key, _ in pairs(dict) do
@@ -171,6 +175,19 @@ local function array_extend(list, ...)
     return list
 end
 
+local function dict_or_nil(x)
+    -- this function is useful for JSON'ing dicts
+    -- because empty table is searialized as array rather than dict in most
+    -- cases it's better to serialize it as nil (no keys)
+    if x == nil then
+        return nil
+    elseif empty_dict(x) then
+        return nil
+    else
+        return x
+    end
+end
+
 return {
     map=map,
     map_pairs=map_pairs,
@@ -191,4 +208,6 @@ return {
     merge_tables=merge_tables,
     array_extend=array_extend,
     sum=sum,
+    empty_dict=empty_dict,
+    dict_or_nil=dict_or_nil,
 }

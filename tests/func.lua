@@ -271,3 +271,31 @@ describe("sum: sum numerical values of the dict or list", function()
             24)
     end)
 end)
+
+describe("empty_dict", function()
+    test("empty (assoc)", function()
+        assert.are.same(
+            func.empty_dict({}),
+            true)
+    end)
+    test("non-empty (assoc)", function()
+        assert.are.same(
+            func.empty_dict({a=1}),
+            false)
+    end)
+    test("two (assoc)", function()
+        assert.are.same(
+            func.empty_dict({a=1, b=2}),
+            false)
+    end)
+    test("non-empty (list)", function()
+        assert.are.same(
+            func.empty_dict({1}),
+            false)
+    end)
+    test("three (list)", function()
+        assert.are.same(
+            func.empty_dict({3, 2, 1}),
+            false)
+    end)
+end)
