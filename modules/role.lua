@@ -7,13 +7,20 @@ local _Role = {}
 function _Role:output()
     local images = {}
     for _, ver in pairs(self.alive_versions or {}) do
-        local daemons = (self.versions[ver] or {daemons={}}).daemons or {}
-        for _, daemon in pairs(daemons) do
-            images[daemon.image] = true
-        end
-        local commands = (self.versions[ver] or {commands={}}).commands or {}
-        for _, cmd in pairs(commands) do
-            images[cmd.image] = true
+        local version_info = self.versions[ver] or {}
+        if version_info.containers then  -- keep all containers of a version
+            for _, val in pairs(version_info.containers) do
+                images[val] = true
+            end
+        else
+            local daemons = version_info.daemons or {}
+            for _, daemon in pairs(daemons) do
+                images[daemon.image] = true
+            end
+            local commands = version_info.commands or {}
+            for _, cmd in pairs(commands) do
+                images[cmd.image] = true
+            end
         end
     end
     local versions = self.alive_versions or self.descending_versions
