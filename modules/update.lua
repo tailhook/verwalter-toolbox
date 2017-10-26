@@ -621,6 +621,8 @@ local function current(state)
                             [state.target_ver] = v,
                         }
                     end
+                elseif cstep.kind == "run_once" then
+                    processes[svc] = {}  -- neither version should run
                 end
             end
         end
@@ -632,6 +634,10 @@ local function current(state)
             if cstep.kind == 'restart' or cstep.kind == 'smooth' then
                 for _, svc in ipairs(cstep.processes) do
                     processes[svc]={[state.source_ver] = 100}
+                end
+            elseif cstep.kind == "run_once" then
+                for _, svc in ipairs(cstep.processes) do
+                    processes[svc] = {}  -- neither version should run
                 end
             end
         end

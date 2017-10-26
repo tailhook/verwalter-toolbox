@@ -356,6 +356,25 @@ describe("updates: current", function()
             substeps=10,
         },
     }
+    local ACK = {
+        {name="cmd_db_migration",
+            backward_mode="skip",
+            backward_time=5,
+            forward_mode="ack",
+            forward_time=5,
+            kind="run_once",
+            processes={"db_migration"},
+        },
+        {name="smooth_restart",
+            kind="smooth",
+            processes={"yyy", "zzz"},
+            forward_mode="smooth",
+            forward_time=80,
+            backward_mode="smooth",
+            backward_time=80,
+            substeps=10,
+        },
+    }
     local function step(name, substep)
         return {
             source_ver='v1',
@@ -370,6 +389,22 @@ describe("updates: current", function()
             change_ts=1,
             auto=false,
             pipeline=SMOOTH,
+        }
+    end
+    local function ack_step(name, substep)
+        return {
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step=name,
+            smooth_step=substep,
+            direction="forward",
+            start_ts=1,
+            step_ts=1,
+            change_ts=1,
+            auto=false,
+            pipeline=ACK,
         }
     end
     test("quick restart", function()
@@ -401,6 +436,18 @@ describe("updates: current", function()
             zzz={v1=100, v2=nil},
             yyy={v1=100, v2=nil},
         }, update.current(step("start")))
+    end)
+    test("ack", function()
+        assert.are.same({
+            zzz={v1=100},
+            yyy={v1=100},
+            db_migration={v1=nil, v2=100},
+        }, update.current(ack_step("cmd_db_migration")))
+        assert.are.same({
+            zzz={v1=100, v2=0},
+            yyy={v1=100, v2=0},
+            db_migration={v1=nil, v2=nil},
+        }, update.current(ack_step("smooth_restart", 0)))
     end)
 end)
 
