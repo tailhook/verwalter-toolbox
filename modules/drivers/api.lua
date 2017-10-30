@@ -110,9 +110,15 @@ local function calculate_pipeline(role, group_name, dest_ver)
         local info = func.copy(vinfo and vinfo.update) or {}
         services[service_name] = info
     end
-    local pipeline = update.derive_pipeline(services)
+    local res, source, err = update.validate_config(services)
+    if not res then
+        role.log:sub(group_name):error("invalid update pipeline:", err)
+        return nil
+    end
+    local pipeline = update.derive_pipeline(source)
     if not pipeline then
         role.log:sub(group_name):error("no valid update pipeline")
+        return nil
     end
     return pipeline
 end

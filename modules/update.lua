@@ -16,7 +16,7 @@ local CONFIG = T.Map { T.String {}, T.Or {
         [T.Key { "after", optional=true }]=T.List { T.String {} },
     },
     T.Dict {
-        restart=T.Or {
+        [T.Key { "restart", default="quick" }]=T.Or {
             T.Atom { "smooth" },
             T.Atom { "quick" },
             -- T.Atom { "temporary_shutdown" },
