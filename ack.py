@@ -16,13 +16,12 @@ except ImportError:
 
 def vw_request(url, data=None):
     req = request.Request(url,
-        data=data and json.dumps(data).encode('utf-8'))
+                          data=data and json.dumps(data).encode('utf-8'))
 
     print("Request:", url)
     with closing(request.urlopen(req)) as req:
         if req.getcode() != 200:
-            raise ValueError("Status code is {}"
-                             .format(status.getcode()))
+            raise ValueError("Status code is {}".format(req.getcode()))
         return json.loads(req.read().decode('utf-8'))
 
 
@@ -45,13 +44,13 @@ def main():
     ap.add_argument("group", help="Group to acknowledge")
     ap.add_argument("step", help="Step to acknowledge")
     ap.add_argument("--proceed", action="store_true",
-        help="Execute proceed action instead of ack. \
-              (useful to proceed actions marked as `manual`)")
+                    help="Execute proceed action instead of ack. \
+                          (useful to proceed actions marked as `manual`)")
     ap.add_argument("--error", help="Acknowledge step with error message")
     ap.add_argument("--verwalter-host", default="localhost",
-        help="Initial verwalter host (default %(default)s)")
+                    help="Initial verwalter host (default %(default)s)")
     ap.add_argument("--verwalter-port", default=8379, type=int,
-        help="Verwalter port (default %(default)s)")
+                    help="Verwalter port (default %(default)s)")
     options = ap.parse_args()
 
     while True:
@@ -107,5 +106,5 @@ def main():
     sleep(86400)
 
 
-if  __name__ == '__main__':
+if __name__ == '__main__':
     main()
