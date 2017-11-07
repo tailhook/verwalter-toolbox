@@ -30,6 +30,12 @@ local ACTION = T.Dict {
             [T.Key { "variables", optional=true }]=
                 T.Map { T.String {}, T.Or { T.String {}, T.Number {} } },
         },
+        delete_daemon=T.Dict {
+            action=T.Atom { "delete_daemon" },
+            role=T.String {},
+            group=T.String {},
+            name=T.String {},
+        },
         enable_auto_update=T.Dict {
             action=T.Atom { "enable_auto_update" },
             role=T.String {},
@@ -238,6 +244,26 @@ function ACTIONS.add_daemon(role, action, _, _)
         number_per_server=button.number_per_server,
         variables=func.dict_or_nil(button.variables),
     }
+end
+
+function ACTIONS.delete_daemon(role, action, _, _)
+    local button = action.button
+    local group = role.state.groups[button.group]
+    if not group then
+        role.log:error('group', button.group, 'does not exists')
+        return
+    end
+    local services = group.services
+    if not services then
+        services = {}
+        group.services = services
+    end
+    local log = role.log:sub(button.group)
+    if services[button.name] == nil then
+        log:error('no such service', button.name)
+        return
+    end
+    services[button.name] = nil
 end
 
 function ACTIONS.enable_auto_update(role, action, _, _)
