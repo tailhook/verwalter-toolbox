@@ -7,8 +7,8 @@ local func = require(super..'func')
 local update = require(super..'update')
 local repr = require(super..'repr')
 local ACTIONS = {}
-local LAST_DEPLOYED_LIFETIME = 86400
-local LAST_UPLOADED_LIFETIME = 86400
+local LAST_DEPLOYED_LIFETIME = 86400000
+local LAST_UPLOADED_LIFETIME = 86400000
 
 local ACTION = T.Dict {
     button=T.Choice {
