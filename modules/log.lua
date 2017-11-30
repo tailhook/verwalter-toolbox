@@ -52,6 +52,19 @@ local function role_change(role_name, ...)
     table.insert(changes, change)
 end
 
+local function log_leader_change(input)
+    local parent_hosts = func.map(function (parent)
+        return parent.owner_hostname
+    end, input.parents)
+    log('no-role', "CHANGE", "",
+        "Leader change [", table.concat(parent_hosts, ', '),
+        "] -> ", input.current_host)
+    local change = ("no-role: Leader change ["
+        ..table.concat(parent_hosts, ', ')
+        .."] -> "..input.current_host)
+    table.insert(changes, change)
+end
+
 local function wrap_scheduler(real_scheduler)
     return function(state)
         local original_print = _G.print
@@ -61,6 +74,9 @@ local function wrap_scheduler(real_scheduler)
 
         local flag, value = xpcall(
             function()
+                if #state.parents ~= 1 then
+                    log_leader_change(state)
+                end
                 local data = real_scheduler(state)
                 if #changes ~= 0 then
                     if not data.changes then
@@ -68,6 +84,7 @@ local function wrap_scheduler(real_scheduler)
                     end
                     func.array_extend(data.changes, changes)
                 end
+                data.owner_hostname = state.current_host
                 return json:encode(data)
             end,
             debug.traceback)
