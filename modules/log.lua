@@ -74,8 +74,8 @@ local function wrap_scheduler(real_scheduler)
 
         local flag, value = xpcall(
             function()
-                if #state.parents ~= 1 or
-                    state.parents[1].owner_hostname ~= state.current_host
+                if state.parents and (#state.parents ~= 1 or
+                    state.parents[1].owner_hostname ~= state.current_host)
                 then
                     log_leader_change(state)
                 end
