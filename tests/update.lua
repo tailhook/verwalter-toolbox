@@ -63,6 +63,34 @@ describe("updates: stages", function()
         }})
     end)
 
+    test("custom", function()
+        local ok, cfg, _ = update.validate_config({
+            x={restart="quick", warmup_sec=5, stage="late",
+               after={"smooth_restart"}},
+            y={restart="smooth", warmup_sec=5},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {{
+            name="smooth_restart",
+            kind="smooth",
+            processes={"y"},
+            forward_mode="smooth",
+            forward_time=50,
+            backward_mode="smooth",
+            backward_time=50,
+            substeps=10,
+        }, {
+            name="late",
+            kind="restart",
+            processes={"x"},
+            forward_mode="time",
+            forward_time=5,
+            backward_mode="time",
+            backward_time=5,
+        }})
+    end)
+
     test("quick restart 2", function()
         local ok, cfg, _ = update.validate_config({
             one={restart="quick", warmup_sec=5},

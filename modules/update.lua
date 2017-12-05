@@ -10,12 +10,14 @@ local EXECUTORS = {}
 
 local CONFIG = T.Map { T.String {}, T.Or {
     T.Dict {
+        [T.Key { "stage", optional=true }]=T.String {},
         [T.Key { "mode" }]=T.Or { T.Atom { "run-with-ack" } },
         [T.Key { "duration", default=0 }]=T.Number {},
         [T.Key { "before", optional=true }]=T.List { T.String {} },
         [T.Key { "after", optional=true }]=T.List { T.String {} },
     },
     T.Dict {
+        [T.Key { "stage", optional=true }]=T.String {},
         [T.Key { "restart", default="quick" }]=T.Or {
             T.Atom { "smooth" },
             T.Atom { "quick" },
@@ -84,7 +86,8 @@ local function expand_before(before, ...)
 end
 
 local function add_quick_restart(stages, daemon, cfg)
-    local stage = stages['quick_restart']
+    local stage_name = cfg['stage'] or 'quick_restart'
+    local stage = stages[stage_name]
     local warmup = cfg.warmup_sec or DEFAULT_WARMUP
     if stage ~= nil then
         table.insert(stage.processes, daemon)
@@ -97,15 +100,21 @@ local function add_quick_restart(stages, daemon, cfg)
             stage.backward_time = warmup
         end
     else
-        stages['quick_restart'] = {
-            name="quick_restart",
+        local before
+        if stage_name == 'quick_restart' then
+            before = expand_before(cfg.before, "smooth_restart")
+        else
+            before = expand_before(cfg.before)
+        end
+        stages[stage_name] = {
+            name=stage_name,
             kind="restart",
             forward_mode="time",
             forward_time=warmup,
             backward_mode="time",
             backward_time=warmup,
             processes={daemon},
-            before=expand_before(cfg.before, "smooth_restart"),
+            before=before,
             after=func.copy(cfg.after) or {},
         }
     end
@@ -144,7 +153,8 @@ local function add_test_mode(stages, daemon, cfg)
 end
 
 local function add_smooth_restart(stages, daemon, cfg)
-    local stage = stages['smooth_restart']
+    local stage_name = cfg['stage'] or 'smooth_restart'
+    local stage = stages[stage_name]
     local substeps = cfg.smooth_substeps or SMOOTH_DEFAULT_SUBSTEPS
     local warmup = cfg.warmup_sec or DEFAULT_WARMUP
     if stage ~= nil then
@@ -161,8 +171,8 @@ local function add_smooth_restart(stages, daemon, cfg)
             stage.backward_time = warmup*substeps
         end
     else
-        stages['smooth_restart'] = {
-            name="smooth_restart",
+        stages[stage_name] = {
+            name=stage_name,
             kind="smooth",
             forward_mode="smooth",
             forward_time=warmup*substeps,
@@ -178,7 +188,7 @@ end
 
 local function add_command(stages, cname, cfg)
     if cfg.mode == 'run-with-ack' then
-        local name = 'cmd_'..cname
+        local name = cfg['stage'] or ('cmd_'..cname)
         stages[name] = {
             name=name,
             kind="run_once",
@@ -487,6 +497,7 @@ local function internal_tick(state, actions, now, log)
                 else
                     log:error("can't proceed on", state.step)
                 end
+
             elseif button.update_action == 'ack' then
                 local mode = state.direction .. '_mode'
                 if step[mode] == 'ack' then
