@@ -1,2 +1,6 @@
 /.vagga
 /luacov.*.out
+/tmp
+*.pyc
+__pycache__
+

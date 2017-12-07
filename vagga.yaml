@@ -50,20 +50,23 @@ containers:
 
   ack:
     setup:
-    - !Alpine v3.6
-    - !Install [python3]
+    - !Alpine v3.7
+    - !PipConfig { dependencies: true }
+    - !Py3Install [setuptools, flake8]
 
   ack-py2:
     setup:
-    - !Alpine v3.6
-    - !Install [python2]
+    - !Alpine v3.7
+    - !Install [py-setuptools]
+    - !PipConfig { dependencies: true }
+    - !Py2Install [flake8]
 
 
 commands:
 
   test: !Command
     container: check
-    prerequisites: [check]
+    prerequisites: [check, check-ack2, check-ack3]
     accepts-arguments: true
     run: |
       exec busted --verbose --coverage ${1:-tests/*.lua}
@@ -74,6 +77,20 @@ commands:
       set -ex
       luacheck modules/*.lua modules/*/*.lua tests/*.lua \
         --exclude-files modules/json.lua
+
+  check-ack2: !Command
+    container: ack-py2
+    run: |
+      set -ex
+      flake8 ack.py ack2.py
+      python -m unittest ack2_tests
+
+  check-ack3: !Command
+    container: ack
+    run: |
+      set -ex
+      flake8 ack.py ack2.py
+      python3 -m unittest ack2_tests
 
   test-coverage: !Command
     container: check
