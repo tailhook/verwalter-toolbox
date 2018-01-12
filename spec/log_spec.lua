@@ -4,7 +4,7 @@ local test = busted.test
 local describe = busted.describe
 
 local log = require("modules/log")
-local mocks = require("tests/mocks")
+local mocks = require("spec/mocks")
 
 describe("log: wrap scheduler", function()
     test("normal_output", function()

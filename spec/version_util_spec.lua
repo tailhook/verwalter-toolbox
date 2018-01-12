@@ -2,9 +2,9 @@ local assert = require('luassert')
 local busted = require('busted')
 local test = busted.test
 local describe = busted.describe
-local versions = require("tests/gen").versions
-local buttons = require("tests/gen").buttons
-local BASE_TIMESTAMP = require("tests/gen").BASE_TIMESTAMP
+local versions = require("spec/gen").versions
+local buttons = require("spec/gen").buttons
+local BASE_TIMESTAMP = require("spec/gen").BASE_TIMESTAMP
 
 local func = require("modules/func")
 local version_util = require("modules/version_util")

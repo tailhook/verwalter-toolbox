@@ -2,7 +2,7 @@ local assert = require('luassert')
 local busted = require('busted')
 local test = busted.test
 local describe = busted.describe
-local gen = require("tests/gen")
+local gen = require("spec/gen")
 
 local manual_version = require("modules/manual_version")
 

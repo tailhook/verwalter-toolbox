@@ -4,7 +4,7 @@ local test = busted.test
 local describe = busted.describe
 
 local api = require("modules/drivers/api")
-local mocks = require("tests/mocks")
+local mocks = require("spec/mocks")
 
 describe("check_action", function()
     test("actions 1", function()

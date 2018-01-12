@@ -4,7 +4,7 @@ local test = busted.test
 local describe = busted.describe
 
 local update = require("modules/update")
-local mocks = require("tests/mocks")
+local mocks = require("spec/mocks")
 
 describe("updates: typical setup", function()
     local processes = {

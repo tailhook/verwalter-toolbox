@@ -69,13 +69,13 @@ commands:
     prerequisites: [check, check-ack2, check-ack3]
     accepts-arguments: true
     run: |
-      exec busted --verbose --coverage ${1:-tests/*.lua}
+      exec busted --verbose --coverage -o gtest $@
 
   check: !Command
     container: check
     run: |
       set -ex
-      luacheck modules/*.lua modules/*/*.lua tests/*.lua \
+      luacheck modules/*.lua modules/*/*.lua spec/*.lua \
         --exclude-files modules/json.lua
 
   check-ack2: !Command
