@@ -250,6 +250,43 @@ describe("updates: stages", function()
             },
         })
     end)
+    test("command with ignoring downgrade ack", function()
+        local ok, cfg, _ = update.validate_config({
+            ccc={mode="run-with-ack",
+                 downgrade_mode="run-with-ack-ignoring-errors",
+                 before={"test_mode"}},
+            ddd={restart="smooth", warmup_sec=8, test_mode_percent=2},
+        })
+        assert(ok)
+        local stages = update.derive_pipeline(cfg)
+        assert.is.same(stages, {
+            {name="cmd_ccc",
+                kind="run_once",
+                processes={"ccc"},
+                forward_mode="ack",
+                forward_downgrade_mode="ack_ignore_errors",
+                forward_time=0,
+                backward_mode="skip",
+                backward_time=0},
+            {name="test_mode",
+                kind="test_mode",
+                processes={"ddd"},
+                test_mode_percent={ddd=2},
+                forward_mode="manual",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8},
+            {name="smooth_restart",
+                kind="smooth",
+                processes={"ddd"},
+                forward_mode="smooth",
+                forward_time=80,
+                backward_mode="smooth",
+                backward_time=80,
+                substeps=10,
+            },
+        })
+    end)
     test("invisible test_mode dependency", function()
         local ok, cfg, _ = update.validate_config({
             ccc={mode="run-with-ack", before={"test_mode"}},
@@ -357,6 +394,145 @@ describe("updates: ticks", function()
             direction='forward',
             change_ts=10,
             step_ts=10,
+            start_ts=1,
+            auto=false,
+            pipeline=SIMPLE,
+        }, nstate2)
+    end)
+end)
+
+describe("updates: ack ticks with skip downgrade", function()
+    local SIMPLE = {
+            {name="cmd_ccc",
+                kind="run_once",
+                processes={"ccc"},
+                forward_mode="ack",
+                forward_downgrade_mode="skip",
+                forward_time=0,
+                backward_mode="skip",
+                backward_time=0},
+            {name="test_mode",
+                kind="test_mode",
+                processes={"ddd"},
+                test_mode_percent={ddd=2},
+                forward_mode="manual",
+                forward_time=8,
+                backward_mode="time",
+                backward_time=8},
+            {name="smooth_restart",
+                kind="smooth",
+                processes={"ddd"},
+                forward_mode="smooth",
+                forward_time=80,
+                backward_mode="smooth",
+                backward_time=80,
+                substeps=10,
+            },
+    }
+    test("start upgrade", function()
+        local logger = mocks.Logger("role")
+        local nstate = update.tick({
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step="start",
+            direction="forward",
+            start_ts=1,
+            step_ts=1,
+            change_ts=1,
+            auto=false,
+            pipeline=SIMPLE,
+        }, {}, 100, logger)
+        assert.is.same({
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step='cmd_ccc',
+            direction='forward',
+            change_ts=100,
+            step_ts=100,
+            start_ts=1,
+            auto=false,
+            pipeline=SIMPLE,
+        }, nstate)
+        -- nothing
+        assert.is.same({
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step='cmd_ccc',
+            direction='forward',
+            change_ts=100,
+            step_ts=100,
+            start_ts=1,
+            auto=false,
+            pipeline=SIMPLE,
+        }, update.tick(nstate, {}, 100000, logger))
+        -- ack
+        assert.is.same({
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step='test_mode',
+            direction='forward',
+            change_ts=100000,
+            step_ts=100000,
+            start_ts=1,
+            auto=false,
+            pipeline=SIMPLE,
+        }, update.tick(nstate, {
+            {button={step="cmd_ccc", update_action="ack"}},
+        }, 100000, logger))
+        -- error
+        assert.is.same({
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step='cmd_ccc',
+            direction='error',
+            pause_ts=100000,
+            change_ts=100000,
+            step_ts=100,
+            start_ts=1,
+            auto=false,
+            pipeline=SIMPLE,
+        }, update.tick(nstate, {
+            {button={step="cmd_ccc", update_action="error"}},
+        }, 100000, logger))
+    end)
+
+    test("start downgrade", function()
+        local logger = mocks.Logger("role")
+        local nstate = update.tick({
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step="start",
+            direction="forward",
+            downgrade=true,
+            start_ts=1,
+            step_ts=1,
+            change_ts=1,
+            auto=false,
+            pipeline=SIMPLE,
+        }, {}, 100, logger)
+        local nstate2 = update.tick(nstate, {}, 100, logger)
+        assert.is.same({
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step='test_mode',
+            direction='forward',
+            downgrade=true,
+            change_ts=100,
+            step_ts=100,
             start_ts=1,
             auto=false,
             pipeline=SIMPLE,

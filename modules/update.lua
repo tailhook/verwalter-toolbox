@@ -2,16 +2,25 @@ local package = (...):match("(.-)[^/]+$")
 local T = require(package..'trafaret')
 local func = require(package..'func')
 local repr = require(package..'repr')
+local version = require(package..'version')
 
 local SMOOTH_DEFAULT_SUBSTEPS = 10
 local DEFAULT_WARMUP = 5
 local MAXIMUM_PAUSED = 1800000  -- revert if paused for 30 min
 local EXECUTORS = {}
+local CONVERT_MODE = {
+    ["run-with-ack"]="ack",
+    ["run-with-ack-ignoring-errors"]="ack_ignore_errors",
+    ["skip"]="skip",
+}
 
 local CONFIG = T.Map { T.String {}, T.Or {
     T.Dict {
         [T.Key { "stage", optional=true }]=T.String {},
-        [T.Key { "mode" }]=T.Or { T.Atom { "run-with-ack" } },
+        [T.Key { "mode" }]=T.Enum {
+            "run-with-ack", "run-with-ack-ignoring-errors", "skip" },
+        [T.Key { "downgrade_mode", optional=true }]=T.Enum {
+            "run-with-ack", "run-with-ack-ignoring-errors", "skip" },
         [T.Key { "duration", default=0 }]=T.Number {},
         [T.Key { "before", optional=true }]=T.List { T.String {} },
         [T.Key { "after", optional=true }]=T.List { T.String {} },
@@ -35,7 +44,10 @@ local CONFIG = T.Map { T.String {}, T.Or {
 local PIPELINE = T.List { T.Dict {
     name=T.String {},
     [T.Key { "kind" }]=T.Enum {"run_once", "smooth", "restart", "test_mode"},
-    [T.Key { "forward_mode" }]=T.Enum {"manual" , "time", "smooth", "ack" },
+    [T.Key { "forward_mode" }]=
+        T.Enum {"manual" , "time", "smooth", "ack", "ack_ignore_errors", "skip" },
+    [T.Key { "forward_downgrade_mode", optional=true }]=
+        T.Enum {"manual" , "time", "smooth", "ack", "ack_ignore_errors", "skip" },
     [T.Key { "forward_time", default=5 }]=T.Number {},
     [T.Key { "backward_mode" }]=T.Enum { "manual", "time", "smooth", "skip" },
     [T.Key { "backward_time", default=5 }]=T.Number {},
@@ -54,7 +66,8 @@ local STATE = T.Dict {
     target_ver=T.String {},
     target_extra=T.Dict {allow_extra=true},
     step=T.String {},
-    direction=T.Enum {"forward", "backward", "pause"},
+    direction=T.Enum {"forward", "backward", "pause", "error"},
+    [T.Key { "downgrade", optional=true }]=T.Bool {},
     start_ts=T.Number {},
     step_ts=T.Number {},
     change_ts=T.Number {},
@@ -187,12 +200,14 @@ local function add_smooth_restart(stages, daemon, cfg)
 end
 
 local function add_command(stages, cname, cfg)
-    if cfg.mode == 'run-with-ack' then
+    if CONVERT_MODE[cfg.mode] then
         local name = cfg['stage'] or ('cmd_'..cname)
         stages[name] = {
             name=name,
             kind="run_once",
-            forward_mode="ack",
+            forward_mode=CONVERT_MODE[cfg.mode],
+            forward_downgrade_mode=cfg.downgrade_mode and
+                CONVERT_MODE[cfg.downgrade_mode],
             forward_time=cfg.duration,
             backward_mode="skip",
             backward_time=cfg.duration,
@@ -315,6 +330,7 @@ local function next_step(state, _, idx, now, log)
         return {
             step="done",
             direction="forward",
+            downgrade=state.downgrade,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
@@ -330,6 +346,7 @@ local function next_step(state, _, idx, now, log)
         return {
             step=state.pipeline[idx+1].name,
             direction="forward",
+            downgrade=state.downgrade,
             start_ts=state.start_ts,
             step_ts=now,
             change_ts=now,
@@ -349,6 +366,7 @@ local function prev_step(state, _, idx, now, log)
         return {
             step="revert_done",
             direction="backward",
+            downgrade=state.downgrade,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
@@ -364,6 +382,7 @@ local function prev_step(state, _, idx, now, log)
         return {
             step=state.pipeline[idx-1].name,
             direction="backward",
+            downgrade=state.downgrade,
             step_ts=now,
             change_ts=now,
             source_ver=state.source_ver,
@@ -408,6 +427,14 @@ function EXECUTORS.forward_ack(state, _, _, _, _)
     return state
 end
 
+function EXECUTORS.forward_ack_ignore_errors(state, _, _, _, _)
+    return state
+end
+
+function EXECUTORS.backward_ack(state, _, _, _, _)
+    return state
+end
+
 function EXECUTORS.backward_manual(state, _, _, _, _)
     return state
 end
@@ -415,6 +442,11 @@ end
 function EXECUTORS.backward_ack(state, _, _, _, _)
     return state
 end
+
+function EXECUTORS.backward_ack(state, _, _, _, _)
+    return state
+end
+
 
 function EXECUTORS.forward_smooth(state, step, idx, now, log)
     local step_no = state.smooth_step or 0
@@ -444,8 +476,24 @@ function EXECUTORS.backward_smooth(state, step, idx, now, log)
     end
 end
 
+function EXECUTORS.forward_skip(state, step, idx, now, log)
+    return next_step(state, step, idx, now, log)
+end
+
 function EXECUTORS.backward_skip(state, step, idx, now, log)
     return prev_step(state, step, idx, now, log)
+end
+
+local function cur_mode(state, step)
+    local key = state.direction .. '_mode'
+    local mode = step[key]
+    if state.downgrade then
+        local bkey = state.direction .. '_downgrade_mode'
+        if step[bkey] then
+            mode = step[bkey]
+        end
+    end
+    return mode
 end
 
 local function internal_tick(state, actions, now, log)
@@ -490,8 +538,8 @@ local function internal_tick(state, actions, now, log)
                 log:change("skipping step", state.step)
                 return next_step(state, step, step_idx, now, log)
             elseif button.update_action == 'proceed' then
-                local mode = state.direction .. '_mode'
-                if step[mode] == 'manual' then
+                local mode = cur_mode(state, step)
+                if mode == 'manual' then
                     log:change("manual step proceeded", state.step)
                     return next_step(state, step, step_idx, now, log)
                 else
@@ -499,22 +547,26 @@ local function internal_tick(state, actions, now, log)
                 end
 
             elseif button.update_action == 'ack' then
-                local mode = state.direction .. '_mode'
-                if step[mode] == 'ack' then
+                local mode = cur_mode(state, step)
+                if mode == 'ack' then
                     log:change("acked step", state.step)
                     return next_step(state, step, step_idx, now, log)
                 else
                     log:error("can't ack", state.step)
                 end
             elseif button.update_action == 'error' then
-                local mode = state.direction .. '_mode'
-                if step[mode] == 'ack' then
+                local mode = cur_mode(state, step)
+                if mode == 'ack' then
                     log:change("error when acking step",
                         state.step, "error:", button.error_messsage)
                     state.pause_ts = now
                     state.change_ts = now
                     state.direction = 'error'
                     state.error_message = button.error_message
+                elseif mode == 'ack_ignore_errors' then
+                    log:change("acked step", state.step,
+                        "with error:", button.error_message)
+                    return next_step(state, step, step_idx, now, log)
                 else
                     log:error("can't ack with error on step", state.step)
                 end
@@ -537,7 +589,7 @@ local function internal_tick(state, actions, now, log)
         end
     end
 
-    local mode = step[state.direction..'_mode']
+    local mode = cur_mode(state, step)
     if mode == nil then
         log:error("Step", state.step,
             "mode", mode, "is unimplemented")
@@ -585,6 +637,7 @@ local function start(source, target, pipeline, auto, now)
         target_extra={},
         step="start",
         direction="forward",
+        downgrade=not version.compare(source, target),
         start_ts=now,
         step_ts=now,
         change_ts=now,

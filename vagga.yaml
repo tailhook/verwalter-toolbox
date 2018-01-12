@@ -61,6 +61,18 @@ containers:
     - !PipConfig { dependencies: true }
     - !Py2Install [flake8]
 
+  test-inst:
+    setup:
+    - !Alpine v3.7
+    - !PipConfig { dependencies: true }
+    - !Py3Install [setuptools, flake8]
+
+    - !EnsureDir /utils
+    - !Download
+      url: https://raw.githubusercontent.com/tailhook/verwalter-toolbox/e849733/ack2.py
+      sha256: 11c3e92ceb91fe159ce65d1f90dd21b9189278a45279952cc35a7616d25152bb
+      path: /utils/ack2.py
+
 
 commands:
 
