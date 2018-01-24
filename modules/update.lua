@@ -397,7 +397,7 @@ local function prev_step(state, _, idx, now, log)
 end
 
 function EXECUTORS.forward_time(state, step, idx, now, log)
-    if state.step_ts + step.forward_time < now then
+    if state.step_ts + step.forward_time*1000 < now then
         return next_step(state, step, idx, now, log)
     else
         -- do nothing
@@ -406,7 +406,7 @@ function EXECUTORS.forward_time(state, step, idx, now, log)
 end
 
 function EXECUTORS.backward_time(state, step, idx, now, log)
-    if state.step_ts + step.backward_time < now then
+    if state.step_ts + step.backward_time*1000 < now then
         return prev_step(state, step, idx, now, log)
     else
         -- do nothing
@@ -415,7 +415,7 @@ function EXECUTORS.backward_time(state, step, idx, now, log)
 end
 
 function EXECUTORS.forward_manual(state, step, idx, now, log)
-    if state.auto and state.step_ts + step.forward_time < now then
+    if state.auto and state.step_ts + step.forward_time*1000 < now then
         return next_step(state, step, idx, now, log)
     else
         -- do nothing
@@ -450,7 +450,7 @@ end
 
 function EXECUTORS.forward_smooth(state, step, idx, now, log)
     local step_no = state.smooth_step or 0
-    if state.change_ts + (step.forward_time / step.substeps) < now then
+    if state.change_ts + (step.forward_time / step.substeps)*1000 < now then
         state.change_ts = now
         if step_no >= step.substeps then
             return next_step(state, step, idx, now, log)
@@ -464,7 +464,7 @@ end
 
 function EXECUTORS.backward_smooth(state, step, idx, now, log)
     local step_no = state.smooth_step or 0
-    if state.change_ts + (step.backward_time / step.substeps) < now then
+    if state.change_ts + (step.backward_time / step.substeps)*1000 < now then
         state.change_ts = now
         if step_no <= 0 then
             return prev_step(state, step, idx, now, log)
