@@ -384,7 +384,7 @@ describe("updates: ticks", function()
             auto=false,
             pipeline=SIMPLE,
         }, nstate)
-        local nstate2 = update.tick(step, {}, 10, logger)
+        local nstate2 = update.tick(step, {}, 10000, logger)
         assert.is.same({
             source_ver='v1',
             source_extra={},
@@ -392,8 +392,8 @@ describe("updates: ticks", function()
             target_extra={},
             step='done',
             direction='forward',
-            change_ts=10,
-            step_ts=10,
+            change_ts=10000,
+            step_ts=10000,
             start_ts=1,
             auto=false,
             pipeline=SIMPLE,
