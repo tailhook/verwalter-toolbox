@@ -111,6 +111,10 @@ local function calculate_pipeline(role, group_name, dest_ver)
     local group = role.state.groups[group_name]
     local services = {}
     local ver = role.versions[dest_ver]
+    if not ver then
+        role.log:sub(group_name):error("no such version")
+        return nil
+    end
     for service_name, service in pairs(group.services or {}) do
         local vinfo = ver.daemons[service.service]
         local info = func.copy(vinfo and vinfo.update) or {}
@@ -541,11 +545,14 @@ end
 
 local function populate_pipelines(role)
     for _, ver in pairs(role.alive_versions or {}) do
-        local group_pipelines = {}
-        for gname, _ in pairs(role.state.groups or {}) do
-            group_pipelines[gname] = calculate_pipeline(role, gname, ver)
+        local vinfo = role.versions[ver]
+        if vinfo then
+            local group_pipelines = {}
+            for gname, _ in pairs(role.state.groups or {}) do
+                group_pipelines[gname] = calculate_pipeline(role, gname, ver)
+            end
+            vinfo.group_pipelines = func.dict_or_nil(group_pipelines)
         end
-        role.versions[ver].group_pipelines = func.dict_or_nil(group_pipelines)
     end
 end
 
