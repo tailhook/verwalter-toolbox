@@ -107,7 +107,7 @@ def main():
     elif mode == 'cmd':
         print("It looks like you're running command manually. To ack run:",
               file=sys.stderr)
-        print("  curl http://leader-name:8379/v1/action -XPOST -d",
+        print("  curl http://leader-name:8379/v1/wait_action -XPOST -d",
               "'" + json.dumps(action) + "'",
               file=sys.stderr)
         sys.exit(0)
@@ -124,17 +124,15 @@ def main():
 
         url = "http://{1}:{0.verwalter_port}".format(options, leader_host)
 
+        print("Acking with params", action)
         try:
-            response = vw_request(url + '/v1/action', data=action)
-            action_id = response["registered"]
+            response = vw_request(url + '/v1/wait_action', data=action)
         except (KeyError, ValueError, URLError) as e:
             print("Error executing action", e, file=sys.stderr)
             sleep(1)
             continue
-
-        if not check_pending(url, action_id):
-            sleep(1)
-            continue
+        else:
+            print("Response: ", response or '<empty>')
 
         break
 
