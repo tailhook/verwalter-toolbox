@@ -560,6 +560,22 @@ describe("updates: current", function()
             substeps=10,
         },
     }
+    local function step(name, substep)
+        return {
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step=name,
+            smooth_step=substep,
+            direction="forward",
+            start_ts=1,
+            step_ts=1,
+            change_ts=1,
+            auto=false,
+            pipeline=SMOOTH,
+        }
+    end
     local ACK = {
         {name="cmd_db_migration",
             backward_mode="skip",
@@ -579,22 +595,6 @@ describe("updates: current", function()
             substeps=10,
         },
     }
-    local function step(name, substep)
-        return {
-            source_ver='v1',
-            source_extra={},
-            target_ver='v2',
-            target_extra={},
-            step=name,
-            smooth_step=substep,
-            direction="forward",
-            start_ts=1,
-            step_ts=1,
-            change_ts=1,
-            auto=false,
-            pipeline=SMOOTH,
-        }
-    end
     local function ack_step(name, substep)
         return {
             source_ver='v1',
@@ -609,6 +609,50 @@ describe("updates: current", function()
             change_ts=1,
             auto=false,
             pipeline=ACK,
+        }
+    end
+
+    local ACK2 = {
+        {name="cmd_one",
+            backward_mode="skip",
+            backward_time=5,
+            forward_mode="ack",
+            forward_time=5,
+            kind="run_once",
+            processes={"one"},
+        },
+        {name="cmd_two",
+            backward_mode="skip",
+            backward_time=5,
+            forward_mode="ack",
+            forward_time=5,
+            kind="run_once",
+            processes={"two"},
+        },
+        {name="quick_restart",
+            kind="smooth",
+            processes={"yyy", "zzz"},
+            forward_mode="smooth",
+            forward_time=80,
+            backward_mode="smooth",
+            backward_time=80,
+            substeps=10,
+        },
+    }
+    local function ack2_step(name, substep)
+        return {
+            source_ver='v1',
+            source_extra={},
+            target_ver='v2',
+            target_extra={},
+            step=name,
+            smooth_step=substep,
+            direction="forward",
+            start_ts=1,
+            step_ts=1,
+            change_ts=1,
+            auto=false,
+            pipeline=ACK2,
         }
     end
     test("quick restart", function()
@@ -653,6 +697,27 @@ describe("updates: current", function()
             db_migration={v1=nil, v2=nil},
         }, update.current(ack_step("smooth_restart", 0)))
     end)
+
+    test("ack2", function()
+        assert.are.same({
+            zzz={v1=100},
+            yyy={v1=100},
+            one={v1=nil, v2=100},
+            two={v1=nil, v2=nil},
+        }, update.current(ack2_step("cmd_one")))
+        assert.are.same({
+            zzz={v1=100},
+            yyy={v1=100},
+            one={v1=nil, v2=nil},
+            two={v1=nil, v2=100},
+        }, update.current(ack2_step("cmd_two")))
+        assert.are.same({
+            zzz={v1=100, v2=0},
+            yyy={v1=100, v2=0},
+            one={v1=nil, v2=nil},
+            two={v1=nil, v2=nil},
+        }, update.current(ack2_step("quick_restart", 0)))
+    end)
 end)
 
 describe("updates: spread", function()
@@ -675,5 +740,9 @@ describe("updates: spread", function()
     test("70/30 + seed", function()
         assert.are.same(update.spread({'a', 'b', 'c'}, 7, {70, 30}, 2),
             {a={5, 2}, b={4, 3}, c={5, 2}})
+    end)
+    test("0/0 (needed for commands)", function()
+        assert.are.same(update.spread({'a', 'b', 'c'}, 7, {0, 0}, 0),
+            {a={0, 0}, b={0, 0}, c={0, 0}})
     end)
 end)

@@ -744,6 +744,7 @@ local function spread(items, num, percentages, seed)
     local base_sum = 0
     local want_nums = {}
     local want_sum = 0
+    local perc_sum = 0
     for i = 1, #percentages-1 do
         local base = math.floor(num*percentages[i]/100)
         base_nums[i] = base
@@ -751,6 +752,17 @@ local function spread(items, num, percentages, seed)
         local want = math.floor(num*#items*percentages[i]/100)
         want_nums[i] = want
         want_sum = want_sum + want
+        perc_sum = percentages[i]
+    end
+    perc_sum = perc_sum + percentages[#percentages]
+    if perc_sum == 0 then
+        for _, item in pairs(items) do
+            result[item] = {}
+            for i, _ in pairs(percentages) do
+                result[item][i] = 0
+            end
+        end
+        return result
     end
     base_nums[#percentages] = num - base_sum
     want_nums[#percentages] = num*#items - want_sum
