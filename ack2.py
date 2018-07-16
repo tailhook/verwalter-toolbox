@@ -16,8 +16,11 @@ except ImportError:
 
 
 def vw_request(url, data=None):
-    req = request.Request(url,
-                          data=data and json.dumps(data).encode('utf-8'))
+    req = request.Request(
+        url,
+        headers={'Content-Type': 'application/json'} if data else {},
+        data=data and json.dumps(data).encode('utf-8'),
+    )
 
     print("Request:", url)
     with closing(request.urlopen(req)) as req:
@@ -101,13 +104,15 @@ def main():
 
     if mode == 'warn':
         print("No environ found. To ack manually run:", file=sys.stderr)
-        print("  curl http://leader-name:8379/v1/action -XPOST -d",
+        print("  curl http://leader-name:8379/v1/action "
+              "-H 'Content-Type: application/json' -XPOST -d",
               "'" + json.dumps(action) + "'", file=sys.stderr)
         sys.exit(77)
     elif mode == 'cmd':
         print("It looks like you're running command manually. To ack run:",
               file=sys.stderr)
-        print("  curl http://leader-name:8379/v1/wait_action -XPOST -d",
+        print("  curl http://leader-name:8379/v1/wait_action "
+              "-H 'Content-Type: application/json' -XPOST -d",
               "'" + json.dumps(action) + "'",
               file=sys.stderr)
         sys.exit(0)
