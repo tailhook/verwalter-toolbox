@@ -31,6 +31,11 @@ test("compare is false for equal versions", function()
     assert.falsy(compare("v2.3.4", "v2.3.4"))
 end)
 
+test("dirty comparison", function()
+    assert.falsy(compare("v0.9.4-10-g93e889d-dirty", "v0.9.4-dirty"))
+    assert.truthy(compare("v0.9.4-dirty", "v0.9.4-10-g93e889d-dirty"))
+end)
+
 test("version sort", function()
     local _sorttable = {"v1.1.0", "v1.0", "v2.15", "v3.4.6", "v1", "v2.3",
                         "v1.1", "v10.0"}

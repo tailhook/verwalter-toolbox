@@ -26,7 +26,7 @@ local function compare(a, b)
                     return false
                 end
             else
-                if string.match("%d+", bitem) then
+                if string.match(bitem, "^%d+$") then
                     -- numbers are always less than letters
                     return true
                 else
